@@ -1,4 +1,8 @@
 function Lbl = segmenetEKARev(MD,well,varargin)
+%  Lbl = segmenetEKARev(MD,well,varargin) will perform a segmentation of
+%  cells expressing YFP in the cytoplasm and deepblue in the nucleus. Gets 
+%  as inputs the Metadata object MD, the well to work on and a whole bunch
+%  of parameters to define the image analysis routine with comments below. 
 
 %% input parameters
 arg.verbose = true;  
@@ -8,19 +12,19 @@ t0=now;
 % based on time timefunc should be a function of time
 arg.timefunc = @(t) true(size(t)); 
 
-% parameters for nuclei detection - see below for comment on their uses. 
-arg.nuc_smooth = fspecial('gauss',7,5); 
-arg.nuc_suppress = 0.01; 
-arg.nuc_erode = strel('disk',3); 
-arg.nuc_minarea = 30; 
+% parameters for nuclei detection 
+arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
+arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
+arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space 
+arg.nuc_minarea = 30; % smaller then this its not a nuclei
 
-% parameters for cell detection - see below for comment on their uses. 
+% parameters for cell detection 
 arg.cyto_dilate = strel('disk',35); 
-arg.cyto_minarea = 100; 
-arg.cyto_maxarea = 2000; 
-arg.cyto_minyfp = 0.01; 
-arg.cyto_distfromedge=100; 
-arg.cyto_thresh = @median; 
+arg.cyto_minarea = 100; % will remove cells with cytoplasm area smaller then this
+arg.cyto_maxarea = 2000; % will remove cells with cytoplasm area bigger then this
+arg.cyto_minyfp = 0.01; % mimimal yfp intensity in the cytoplasm (absolute units, euqal to 2^16 of ~650)
+arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
+arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
 arg = parseVarargin(varargin,arg); 
 
@@ -127,6 +131,8 @@ for i=1:size(yfp,3)
     
     % now that we have the trye 
     cytolbl = segmentUsingSeeds(cytobw,nuclbl,'method','watershed');
+    
+    % remove nuclei from cytoplasm
     cytolbl(imerode(nuclbl>0,strel('disk',1)))=0;
     PxlIdx_cyto = regionprops(cytolbl,'PixelIdxList');
     PxlIdx_cyto = {PxlIdx_cyto.PixelIdxList};

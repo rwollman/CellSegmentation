@@ -4,8 +4,7 @@ function [Erk,T,FretStk] = measureEKARevFRET(MD,well,Lbl,varargin)
 % 1. Image registration - using normxcorr2 on central croped image. works pretty well. 
 % 2. Background subtraction - using a exponential fit for a min of central
 %    image. 
-% 3. CFP photobleaching (currently not doing it at all, need to implement);
-% 4. bleedthrough correction for CFP and YFP (even if YFP is more sparsly
+% 3. bleedthrough correction for CFP and YFP (even if YFP is more sparsly
 %    acquired) based on bleedthrough calibration. 
 
 
@@ -92,9 +91,11 @@ end
 ratio = (c2y-arg.cfp2fretbleedthrough*cfp-arg.yfp2fretbleedthrough*yfp)./cfp; 
 [T,ordr]=sort(T); 
 ratio = ratio(:,:,ordr); 
+
+%% actual measurement 
 Erk = meanIntensityPerLabel(Lbl,ratio,T,'func','median','type','cyto'); 
 
-%% make FretStak if asked for
+%% make FretStak to allow for nice visualization
 if nargout ==3
     f=imresize(ratio(:,:,1),0.333);
     FretStk = zeros(size(f,1),size(f,2),size(ratio,3),'single');
