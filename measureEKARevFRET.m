@@ -15,6 +15,8 @@ arg.cfp2fretbleedthrough = 0.95;
 arg.yfp2fretbleedthrough = 0.0284; 
 arg.backgroundfilter = sum(fspecial('gauss',5,3));
 
+arg.crop = [680 680 680 680]; 
+
 arg = parseVarargin(varargin,arg); 
 
 
@@ -34,15 +36,23 @@ if size(c2y,3)~=numel(T)
 end
 
 %% register the stacks 
+% registration happens such that every image will be registered to the
+% reference image that was taken at the same time as the image used for
+% labeling. This means that we will run the registerStack functions as many
+% times as we have labels. 
+
+% figure out whoe "belongs" to whon
 Tlbl = Lbl.T; 
 D = abs(repmat(Tlbl(:)',size(T,1),1)-repmat(T(:),1,numel(Tlbl))); 
 [minD,refix]=min(D,[],2); 
 unq = unique(refix); 
 ref2d = imref2d([size(cfp,1) size(cfp,2)]); 
+
+% repeat registration 
 for i=1:numel(unq)
     ix=find(refix==unq(i)); 
     [~,mi] = min(minD(ix));
-    [c2y(:,:,ix),Tfrms] = registerStack(c2y(:,:,ix),'reference',mi,'crop',[680 680 680 680],'method','xcorr');
+    [c2y(:,:,ix),Tfrms] = registerStack(c2y(:,:,ix),'reference',mi,'crop',arg.crop,'method','xcorr');
     for j=1:numel(ix)
         cfp(:,:,ix(j))=imwarp(cfp(:,:,ix(j)),Tfrms(j),'OutputView',ref2d); 
     end
@@ -52,7 +62,7 @@ end
 yfpsml = stkread(MD,'Position',well,'Channel','Yellow','timefunc',arg.timefunc);
 % for yfp just subtract background without filtering. 
 for i=1:size(yfpsml,3)
-    m=imcrop(yfpsml(:,:,i),[680 680 680 680]); 
+    m=imcrop(yfpsml(:,:,i),arg.crop); 
     yfpsml(:,:,i)=yfpsml(:,:,i)-min(m(:)); 
 end
 yfprow = reshape(yfpsml,size(cfp,1)*size(cfp,2),size(yfpsml,3))';
@@ -64,9 +74,9 @@ yfp = reshape(yfp',[Lbl.sz numel(T)]);
 cfp_bck=nan(size(cfp,3),1); 
 c2y_bck=nan(size(c2y,3),1); 
 for i=1:numel(c2y_bck)
-    m1=imcrop(cfp(:,:,i),[680 680 680 680]); 
+    m1=imcrop(cfp(:,:,i),arg.crop); 
     cfp_bck(i)=min(m1(:)); 
-    m2=imcrop(c2y(:,:,i),[680 680 680 680]); 
+    m2=imcrop(c2y(:,:,i),arg.crop); 
     c2y_bck(i)=min(m2(:)); 
 end
 % 
@@ -79,10 +89,6 @@ c2y_fit = exp(b(1))*exp(b(2)*Tsec);
 b=regress(log(cfp_bck(1:n)),[ones(n,1) Tsec(1:n)]); 
 cfp_fit = exp(b(1))*exp(b(2)*Tsec);
 
-% % % smooth background
-% cfp_bck=filtfilt(arg.backgroundfilter,1,double(cfp_bck)); 
-% c2y_bck=filtfilt(arg.backgroundfilter,1,double(c2y_bck)); 
-
 for i=1:n
     c2y(:,:,i) = c2y(:,:,i)-c2y_fit(i); 
     cfp(:,:,i) = cfp(:,:,i)-cfp_fit(i); 
@@ -90,6 +96,8 @@ end
     
 %% Bleedthrough calculations
 ratio = (c2y-arg.cfp2fretbleedthrough*cfp-arg.yfp2fretbleedthrough*yfp)./cfp; 
+% next two lines should do nothing, in some cases due to messed acqusition
+% they are needed
 [T,ordr]=sort(T); 
 ratio = ratio(:,:,ordr); 
 Erk = meanIntensityPerLabel(Lbl,ratio,T,'func','median','type','cyto'); 
