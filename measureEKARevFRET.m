@@ -64,9 +64,16 @@ for i=1:size(yfpsml,3)
     m=imcrop(yfpsml(:,:,i),arg.crop); 
     yfpsml(:,:,i)=yfpsml(:,:,i)-min(m(:)); 
 end
-yfprow = reshape(yfpsml,size(cfp,1)*size(cfp,2),size(yfpsml,3))';
-yfp = interp1(Tlbl,yfprow,T,'nearest','extrap'); 
-yfp = reshape(yfp',[Lbl.sz numel(T)]);
+
+if size(yfpsml,3)~=size(c2y,3)
+    yfprow = reshape(yfpsml,size(cfp,1)*size(cfp,2),size(yfpsml,3))';
+    yfp = interp1(Tlbl,yfprow,T,'nearest','extrap');
+    yfp = reshape(yfp',[Lbl.sz numel(T)]);
+else
+    yfp=yfpsml; 
+end
+% save memory
+clear yfpsml; 
 
 
 %% perform background subtraction
@@ -95,6 +102,7 @@ end
     
 %% Bleedthrough calculations
 ratio = (c2y-arg.cfp2fretbleedthrough*cfp-arg.yfp2fretbleedthrough*yfp)./cfp; 
+clear c2y yfp cfp % save memory
 % next two lines should do nothing, in some cases due to messed acqusition
 % they are needed
 [T,ordr]=sort(T); 

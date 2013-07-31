@@ -12,6 +12,8 @@ t0=now;
 % based on time timefunc should be a function of time
 arg.timefunc = @(t) true(size(t)); 
 
+arg.projectnucandcyto = false; 
+
 % parameters for nuclei detection 
 arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
@@ -36,8 +38,17 @@ T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',well,'
 T = cat(1,T{:});
 
 %% read data
-yfp = stkread(MD,'Position',well,'Channel','Yellow','timefunc',arg.timefunc);
+% read Hoecht images and find the corresponding yellow image using the
+% frame Timestamp; 
 nuc = stkread(MD,'Position',well,'Channel','DeepBlue','timefunc',arg.timefunc);
+ts = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc); 
+ts=cat(1,ts{:}); 
+yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',ts);
+
+if arg.projectnucandcyto
+    nuc = mean(nuc,3); 
+    yfp = mean(yfp,3); 
+end
 
 arg.verbose && fprintf('Finishd reading YFP & Hoescht T=%s\n',datestr(now-t0,13));  %#ok<*VUNUS>
 
