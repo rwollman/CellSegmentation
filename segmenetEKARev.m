@@ -1,37 +1,37 @@
 function Lbl = segmenetEKARev(MD,well,varargin)
 %  Lbl = segmenetEKARev(MD,well,varargin) will perform a segmentation of
-%  cells expressing YFP in the cytoplasm and deepblue in the nucleus. Gets 
+%  cells expressing YFP in the cytoplasm and deepblue in the nucleus. Gets
 %  as inputs the Metadata object MD, the well to work on and a whole bunch
-%  of parameters to define the image analysis routine with comments below. 
+%  of parameters to define the image analysis routine with comments below.
 
 %% input parameters
-arg.verbose = true;  
-t0=now; 
+arg.verbose = true;
+t0=now;
 
 % timefunc provides a mechanism to chose only a subset of images to work on
 % based on time timefunc should be a function of time
-arg.timefunc = @(t) true(size(t)); 
+arg.timefunc = @(t) true(size(t));
 
-arg.projectnucandcyto = false; 
+arg.projectnucandcyto = false;
 
-% parameters for nuclei detection 
+% parameters for nuclei detection
 arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
-arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space 
+arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
 
-% parameters for cell detection 
-arg.cyto_dilate = strel('disk',35); 
+% parameters for cell detection
+arg.cyto_dilate = strel('disk',35);
 arg.cyto_minarea = 100; % will remove cells with cytoplasm area smaller then this
 arg.cyto_maxarea = 2000; % will remove cells with cytoplasm area bigger then this
 arg.cyto_minyfp = 0.01; % mimimal yfp intensity in the cytoplasm (absolute units, euqal to 2^16 of ~650)
 arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
 arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
-arg = parseVarargin(varargin,arg); 
+arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
-Lbl = CellLabel; 
+Lbl = CellLabel;
 
 %% get timepoints for the Label matrices
 T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',well,'timefunc',arg.timefunc);
@@ -39,28 +39,31 @@ T = cat(1,T{:});
 
 %% read data
 % read Hoecht images and find the corresponding yellow image using the
-% frame Timestamp; 
+% frame Timestamp;
 nuc = stkread(MD,'Position',well,'Channel','DeepBlue','timefunc',arg.timefunc);
-ts = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc); 
-ts=cat(1,ts{:}); 
+ts = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc);
+ts=cat(1,ts{:});
 yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',ts);
 
 if arg.projectnucandcyto
-    nuc = mean(nuc,3); 
-    yfp = mean(yfp,3); 
+    nuc = mean(nuc,3);
+    yfp = mean(yfp,3);
 end
+
+CellLabels = cell(size(yfp,3),1);
+CytoLabels = cell(size(yfp,3),1);
+NucLabels = cell(size(yfp,3),1);
 
 arg.verbose && fprintf('Finishd reading YFP & Hoescht T=%s\n',datestr(now-t0,13));  %#ok<*VUNUS>
 
-assert(size(yfp,3)==size(nuc,3),'Sizes of YFP and DeepBlue should be the same!'); 
+assert(size(yfp,3)==size(nuc,3),'Sizes of YFP and DeepBlue should be the same!');
 
-for i=1:size(yfp,3) 
-
+parfor i=1:size(yfp,3)
     %% segment nucleus
-    % overall strategy - 
+    % overall strategy -
     % perform a few operations to transform the nuclei into small hills
     % then find the local maxima to create a seed per each nucleur. Then
-    % use watershed to segment the nuclei based on these seeds. 
+    % use watershed to segment the nuclei based on these seeds.
     
     nucprj = nuc(:,:,i);
     msk = nucprj>prctile(nucprj(:),5);
@@ -90,7 +93,7 @@ for i=1:size(yfp,3)
     % at this point in the code each nuclei should have a unique sinlgle
     % peak, so we will use a regional max operation to find it. The &nucbw
     % is just to make sure that the identified peaks are within area of
-    % hoecht and not some random peak in the background. 
+    % hoecht and not some random peak in the background.
     nucpeaks = imregionalmax(nucpeaks) & nucbw;
     
     % next function is a custom segmentation function Roy wrote. It uses
@@ -100,21 +103,21 @@ for i=1:size(yfp,3)
         'method','watershed','mincellarea',arg.nuc_minarea);
     
     arg.verbose && fprintf('%g/%g - Finishd Segmenting nuclei T=%s\n',i,size(yfp,3),datestr(now-t0,13));  %#ok<*VUNUS>
-                       
+    
     %% segment cytoplasm
     
-    % overall strategy - 1. segment / 2. watershed. 
+    % overall strategy - 1. segment / 2. watershed.
     % however, we can't just segment based on forground/background with
     % optThresh since the entire image is foreground. So we relay on cell
     % intrinsic thresholding based on combination of proximity to nuclei
-    % and yfp intensity that is higher then the median of the nucleus. 
+    % and yfp intensity that is higher then the median of the nucleus.
     
     % create an area that surrounds cells with imclose, since nuclei are
     % close to each other this will create a continus true in areas with
-    % cells and false in areas without cells. 
+    % cells and false in areas without cells.
     possiblecellbw = imclose(nuclbl>0,arg.cyto_dilate);
     
-    % now use watershed to divide the foreground area into possible cells 
+    % now use watershed to divide the foreground area into possible cells
     posscytolbl = segmentUsingSeeds(possiblecellbw,nuclbl,'method','watershed');
     
     % next few steps are use the yfp intensity
@@ -133,23 +136,23 @@ for i=1:size(yfp,3)
     % to median) then threshold the possible pixels that might be a cell
     % based on that threshold. This effectivly defines a cells as the
     % pixels that "belog" to a nuclei based on proximity that are also
-    % higher in intensity then the median of the nucleus. 
+    % higher in intensity then the median of the nucleus.
     for j=1:numel(PxlIdx_posscyto)
         thrsh = arg.cyto_thresh(yfpprj(PxlIdx_nuc{j}));
         ix = yfpprj(PxlIdx_posscyto{j})>thrsh;
         cytobw(PxlIdx_posscyto{j}(ix)) = true;
     end
     
-    % now that we have the trye 
+    % now that we have the trye
     cytolbl = segmentUsingSeeds(cytobw,nuclbl,'method','watershed');
     
     % remove nuclei from cytoplasm
     cytolbl(imerode(nuclbl>0,strel('disk',1)))=0;
     PxlIdx_cyto = regionprops(cytolbl,'PixelIdxList');
     PxlIdx_cyto = {PxlIdx_cyto.PixelIdxList};
-
+    
     %% remove cells by critria
-
+    
     % find for each cell its area, centroid and yfp intensity
     prps = regionprops(cytolbl,yfpprj,{'Area','Centroid','MeanIntensity'});
     Area = [prps.Area];
@@ -164,15 +167,15 @@ for i=1:size(yfp,3)
     % combine all criteral to one true/false index & remove cells
     ix = Area>arg.cyto_minarea  & Area<arg.cyto_maxarea  & ...
         YFP > arg.cyto_minyfp & DistFromEdge' > arg.cyto_distfromedge;
-
+    
     PxlIdx_cyto(~ix)=[];
     PxlIdx_nuc(~ix)=[];
-
+    
     n1=numel(PxlIdx_nuc);
     n2=numel(PxlIdx_cyto);
     assert(n1==n2,'Different number of nuclei & cytoplasms - check for error');
-
-    %% relabel all three regions into the same 
+    
+    %% relabel all three regions into the same
     cytolbl = zeros(size(msk));
     nuclbl=zeros(size(msk));
     celllbl = zeros(size(msk));
@@ -181,16 +184,22 @@ for i=1:size(yfp,3)
         nuclbl(PxlIdx_nuc{j})=j;
         celllbl([PxlIdx_cyto{j}; PxlIdx_nuc{j}])=j;
     end
-
-    %% add to Lbl
-    addLbl(Lbl,celllbl,'base',T(i),'relabel','nearest');
-    addLbl(Lbl,cytolbl,'cyto',T(i),'relabel','nearest'); 
-    addLbl(Lbl,nuclbl,'nuc',T(i),'relabel','nearest');
+    CellLabels{i}=celllbl;
+    CytoLabels{i}=cytolbl;
+    NucLabels{i}=nuclbl;
     
     %% verbose
-    arg.verbose && fprintf('%g/%g - Finishd Segmenting cells & relabeling T=%s\n',i,size(yfp,3),datestr(now-t0,13));  %#ok<*VUNUS> 
+    arg.verbose && fprintf('%g/%g - Finishd Segmenting cells & relabeling T=%s\n',i,size(yfp,3),datestr(now-t0,13));  %#ok<*VUNUS>
+    
+end
+
+for i=1:numel(CellLabels)
+    %% add to Lbl
+    addLbl(Lbl,CellLabels{i},'base',T(i),'relabel','nearest');
+    addLbl(Lbl,CytoLabels{i},'cyto',T(i),'relabel','nearest');
+    addLbl(Lbl,NucLabels{i},'nuc',T(i),'relabel','nearest');
+    
 end
 
 
-   
 

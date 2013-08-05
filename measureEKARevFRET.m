@@ -65,12 +65,14 @@ for i=1:size(yfpsml,3)
     yfpsml(:,:,i)=yfpsml(:,:,i)-min(m(:)); 
 end
 
-if size(yfpsml,3)~=size(c2y,3)
+if size(yfpsml,3)==1
+    yfp = repmat(yfpsml,[1 1 numel(T)]); 
+elseif size(yfpsml,3)==size(c2y,3)
+    yfp=yfpsml;
+else
     yfprow = reshape(yfpsml,size(cfp,1)*size(cfp,2),size(yfpsml,3))';
     yfp = interp1(Tlbl,yfprow,T,'nearest','extrap');
     yfp = reshape(yfp',[Lbl.sz numel(T)]);
-else
-    yfp=yfpsml; 
 end
 % save memory
 clear yfpsml; 
