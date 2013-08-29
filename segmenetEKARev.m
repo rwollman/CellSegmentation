@@ -32,18 +32,22 @@ arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
 Lbl = CellLabel;
-
-%% get timepoints for the Label matrices
-T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',well,'timefunc',arg.timefunc);
-T = cat(1,T{:});
+% 
+% %% get timepoints for the Label matrices
+% T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',well,'timefunc',arg.timefunc);
+% T = cat(1,T{:});
 
 %% read data
 % read Hoecht images and find the corresponding yellow image using the
 % frame Timestamp;
-nuc = stkread(MD,'Position',well,'Channel','DeepBlue','timefunc',arg.timefunc);
-ts = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc);
-ts=cat(1,ts{:});
-yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',ts);
+T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc);
+T=cat(1,T{:});
+nuc = stkread(MD,'Position',well,'Channel','DeepBlue','TimestampFrame',T);
+yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',T);
+
+[~,ordr]=sort(T); 
+nuc=nuc(:,:,ordr); 
+yfp=yfp(:,:,ordr); 
 
 if arg.projectnucandcyto
     nuc = mean(nuc,3);
