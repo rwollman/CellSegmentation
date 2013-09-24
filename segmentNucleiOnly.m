@@ -4,9 +4,11 @@ function Lbl = segmentNucleiOnly(MD,well,varargin)
 % parameters for nuclei detection
 arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
-arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
+arg.nuc_suppress = 0.05; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
-arg.mindistancefromedge = 150;
+arg.nuc_stretch = [1 99]; 
+
+arg.mindistancefromedge =150;
 
 arg.positiontype = 'Position'; 
 
@@ -21,7 +23,8 @@ Lbl = CellLabel;
 %% get timepoints for the Label matrices
 T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue',arg.positiontype,well);
 T = cat(1,T{:});
-T = sort(T);
+[T,ordr]= sort(T);
+nuc=nuc(:,:,ordr); 
 
 %% first subtrack background for entire stack
 % subtract bacgkround using a mask to avoid corner issues
@@ -37,7 +40,7 @@ nuc = backgroundSubtraction(nuc,'msk',logical(msk));
 NucLabels = cell(size(nuc,3),1);
 
 %% for each well, segment all nucleri
-parfor i=1:size(nuc,3)
+for i=1:size(nuc,3)
     %%
     %% segment nucleus
     % overall strategy -
@@ -59,8 +62,7 @@ parfor i=1:size(nuc,3)
     % next step is supression by intensity, to move to relative units, I am
     % rescaleing the image such that [0 1] are the 1% and 99% grayscale
     % values
-    nucslice = nuc(:,:,i);
-    nucpeaks = mat2gray(nucpeaks,double(prctile(nucslice(nucbw),[1 99])));
+    nucpeaks = mat2gray(nucpeaks,double(prctile(nucpeaks(nucbw),arg.nuc_stretch)));
     
     % imhmax supresses peaks below a specific height
     nucpeaks = imhmax(nucpeaks,arg.nuc_suppress);
@@ -92,4 +94,5 @@ end
 %% add label to CellLabel object
 for i=1:numel(NucLabels)
     addLbl(Lbl,NucLabels{i} ,'base',T(i),'relabel','nearest');
+    addLbl(Lbl,NucLabels{i} ,'nuc',T(i),'relabel','nearest');
 end

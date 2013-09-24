@@ -28,22 +28,26 @@ arg.cyto_minyfp = 0.01; % mimimal yfp intensity in the cytoplasm (absolute units
 arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
 arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
+arg.mindistancefromedge =150;
+
+arg.positiontype = 'Position';
+
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
 Lbl = CellLabel;
 
 %% get timepoints for the Label matrices
-T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',well,'timefunc',arg.timefunc);
+T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow',arg.positiontype, well,'timefunc',arg.timefunc);
 T = cat(1,T{:});
 
 %% read data
 % read Hoecht images and find the corresponding yellow image using the
 % frame Timestamp;
-nuc = stkread(MD,'Position',well,'Channel','DeepBlue','timefunc',arg.timefunc);
-ts = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc);
+nuc = stkread(MD,arg.positiontype,well,'Channel','DeepBlue','timefunc',arg.timefunc);
+ts = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue',arg.positiontype,well,'timefunc',arg.timefunc);
 ts=cat(1,ts{:});
-yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',ts);
+yfp = stkread(MD,arg.positiontype,well,'Channel','Yellow','TimestampFrame',ts);
 
 if arg.projectnucandcyto
     nuc = mean(nuc,3);
