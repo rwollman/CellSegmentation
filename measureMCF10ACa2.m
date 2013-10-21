@@ -14,7 +14,9 @@ Tca = cat(1,Tca{:});
 CaStk = CaStk(:,:,ordr); 
 
 %% subtract  bacground (for all stack at once...); 
-CaStk = backgroundSubtraction(CaStk); 
+CaStk = backgroundSubtraction(CaStk);
+% CaStk = backgroundSubtraction(CaStk,'timeskip',10); 
+
 
 %% measure intensities
 Ca = meanIntensityPerLabel(Lbl,CaStk,Tca,'func','median','type','nuc');
