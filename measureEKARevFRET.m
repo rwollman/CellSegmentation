@@ -15,17 +15,20 @@ arg.yfp2fretbleedthrough = 0.0284;
 arg.backgroundfilter = sum(fspecial('gauss',5,3));
 
 arg.crop = [680 680 680 680]; 
+arg.positiontype = 'Position';
 
 arg = parseVarargin(varargin,arg); 
 
 
 %% get timepoints for measurements. 
-T = MD.getSpecificMetadata('TimestampFrame','Channel','Cyan','Position',well,'timefunc',arg.timefunc);
+T = MD.getSpecificMetadata('TimestampFrame','Channel','Cyan',arg.positiontype ,well,'timefunc',arg.timefunc);
 T=cat(1,T{:}); 
 
 %% Read Cyan / CyanToYellow stack and process them. 
-c2y = stkread(MD,'Position',well,'Channel','CyanToYellow','timefunc',arg.timefunc);
-cfp = stkread(MD,'Position',well,'Channel','Cyan','timefunc',arg.timefunc);
+c2y = stkread(MD,arg.positiontype ,well,'Channel','CyanToYellow','timefunc',arg.timefunc);
+cfp = stkread(MD,arg.positiontype ,well,'Channel','Cyan','timefunc',arg.timefunc);
+
+assert(~isempty(cfp),'Error CFP is empty - check argument calls'); 
 
 % make sure that numel(T) is the same as (it should be but if not, try to
 % correct as best as possible. 
@@ -58,7 +61,10 @@ for i=1:numel(unq)
 end
 
 %% measure YFP and interpolate for missing values
-yfpsml = stkread(MD,'Position',well,'Channel','Yellow','timefunc',arg.timefunc);
+yfpsml = stkread(MD,arg.positiontype ,well,'Channel','Yellow','TimestampFrame',Tlbl);
+
+assert(numel(Tlbl)==size(yfpsml,3),'The number of YFP slices is different then the timepoints in Lbl object'); 
+
 % for yfp just subtract background without filtering. 
 for i=1:size(yfpsml,3)
     m=imcrop(yfpsml(:,:,i),arg.crop); 
