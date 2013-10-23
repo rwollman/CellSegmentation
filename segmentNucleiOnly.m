@@ -1,4 +1,4 @@
-function Lbl = segmentNucleiOnly(MD,well,varargin)
+function [Lbl,NucLabels] = segmentNucleiOnly(MD,well,varargin)
 
 %% define analysis parameters
 % parameters for nuclei detection
@@ -11,6 +11,8 @@ arg.nuc_stretch = [1 99];
 arg.mindistancefromedge =150;
 
 arg.positiontype = 'Position'; 
+
+arg.register = []; % optional registration object
 
 arg = parseVarargin(varargin,arg); 
     
@@ -25,6 +27,17 @@ T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue',arg.positiontyp
 T = cat(1,T{:});
 [T,ordr]= sort(T);
 nuc=nuc(:,:,ordr); 
+
+%% register if requested or if Registration object was passed as an input arguemtn
+if islogical(arg.register) && arg.register
+    Reg = Registration;
+    [nuc,Tforms] = registerStack(nuc);
+    Reg.Tforms = Tforms;
+    Reg.T = T; 
+elseif ~isempty(arg.register) && isa(arg.register,'Registration')
+    Reg = arg.register; 
+    nuc = Reg.register(nuc,T); 
+end
 
 %% first subtrack background for entire stack
 % subtract bacgkround using a mask to avoid corner issues
