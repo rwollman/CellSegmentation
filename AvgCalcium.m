@@ -13,15 +13,15 @@
   Outputs:
 %}
 %% Get calcium data
-[Ca,Tca] = R.getTimeseriesData('Ca','B10');
+[Ca,Tca] = R.getTimeseriesData('Ca','C03');
 %%
 figure(2);clf; prm = randperm(size(Ca,2)); plot(Tca,Ca(:,prm(1:10)));
-title('Sample individual time series of B10 (0uM)');
+title('Sample individual time series of C03 (0uM)');
 xlabel('Time (sec)');
 ylabel('Raw Flou4 intensity');
 %%
-baseInd = 1:10;
-outInd = 11:17;
+baseInd = 1:7;
+outInd = 8:17;
 baseInten = 50;
 
 %%
@@ -64,7 +64,7 @@ baseInten = 50;
     %legend('10uM','3.33uM','1uM','0.33uM','0.1uM','Control');
     legend('10uM','1uM','0.1uM','Control');
     h2 = get(gcf,'CurrentAxes');
-    title('Average Calcium Response 12/14/2013 run 2');
+    title('Average Calcium Response 12/10/2013 run 2');
     h2 = get(gca,'Title');
     set(h2,'FontSize', 20);
     xlabel('Time sec');    
