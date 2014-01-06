@@ -1,4 +1,16 @@
-function [ R ] = ProcessCalciumData( pth )
+%{
+ This function processes the data read the the directory and creates a
+ results object 
+ 
+Input: pth- the directory of the raw data 
+       pos(optional): a cel array taht contains the specific positions to be analyzed. If this
+       argument is empty then all the wells will be analyzed 
+
+Output:
+       R - the results object
+
+%}
+function [ R ] = ProcessCalciumData( pth,varargin )
 
     %% define analysis parameters
     % parameters for nuclei detection
@@ -11,7 +23,12 @@ function [ R ] = ProcessCalciumData( pth )
     %%
     md = Metadata(pth);
     R = MultiPositionSingleCellResults(pth);
-    R.PosNames = unique(md,'Position');
+    if isempty(varargin)
+        R.PosNames = unique(md,'Position');
+    else
+        R.PosNames = varargin{:};
+    end
+   
     %% main analysis loop
     for j=1:numel(R.PosNames)
 
@@ -174,7 +191,6 @@ function [ R ] = ProcessCalciumData( pth )
     %  title(sprintf('X: %g Y: %g',XY(ix,1),XY(ix,2)))
 
 
-    %% save results
-    R.saveResults;
+ 
 end
 
