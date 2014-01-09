@@ -15,6 +15,9 @@ arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
 arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
+arg.nuc_stretch = [1 99]; 
+
+arg.mindistancefromedge =0;
 
 % parameters for cell detection
 arg.cyto_channel = 'Yellow'; 
@@ -28,33 +31,44 @@ arg.cyto_thresh = @median; % how to determine the intracellular threshold
 arg.positiontype = 'Position'; 
 
 arg.reg_channel = 'CyanToYellow'; 
-
+arg.register = []; 
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
-Lbl = CellLabel;
 
-n = numel(MD.getSpecificMetadata('TimestampImage','Channel',arg.cyto_channel,arg.positiontype,well));
+%% Create and populate the registration object
+if isa(arg.register,'Registration')
+    Reg = arg.register; 
+else
+    Reg = Registration;
+    Treg = MD.getSpecificMetadata('TimestampImage','Channel',arg.reg_channel,'timefunc',arg.timefunc);
+    Treg = sort(cat(1,Treg{:}));
+    Reg.T=Treg;
+    stk = stkread(MD,arg.positiontype ,well,'Channel',arg.reg_channel,'timefunc',arg.timefunc);
+    [~,Tforms] = registerStack(stk);
+    Reg.Tforms = Tforms;
+    % add the registration object to the arg struct
+    arg.register = Reg;
+end
+
+
+
+%% call the nuclei segmentation function with updated arg struct
+[~,NucLabels,T,msk] = segmentNucleiOnly(MD,well,arg); 
+% n = numel(MD.getSpecificMetadata('TimestampImage','Channel',arg.cyto_channel,arg.positiontype,well));
+n = numel(T); 
 CellLabels = cell(n,1);
 CytoLabels = cell(n,1);
 
 
-%% Create and populate the registration object
-Reg = Registration; 
-Treg = MD.getSpecificMetadata('TimestampImage','Channel',arg.reg_channel,'timefunc',arg.timefunc); 
-Treg = sort(cat(1,Treg{:})); 
-Reg.T=Treg; 
-stk = stkread(MD,arg.positiontype ,well,'Channel','CyanToYellow','timefunc',arg.timefunc);
-[~,Tforms] = registerStack(stk); 
-Reg.Tforms = Tforms;
-% add the registration object to the arg struct
-arg.register = Reg; 
+%% read cytoplasm channel and register it with Reg
+yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',T);
+yfp = Reg.register(yfp,T); 
 
-%% call the nuclei segmentation function with updated arg struct
-[~,NucLabels] = segmentNucleiOnly(MD,well,arg); 
 
 %% segment cytoplasm
-for i=1:numel(NucLabels);
+parfor i=1:numel(NucLabels)
+    nuclbl = NucLabels{i}; 
     % overall strategy - 1. segment / 2. watershed.
     % however, we can't just segment based on forground/background with
     % optThresh since the entire image is foreground. So we relay on cell
@@ -135,9 +149,18 @@ for i=1:numel(NucLabels);
     end
     CellLabels{i}=celllbl;
     CytoLabels{i}=cytolbl;
-    NucLabels{i}=nuclbl;
-    
+
     %% verbose
     arg.verbose && fprintf('%g/%g - Finishd Segmenting cells & relabeling T=%s\n',i,size(yfp,3),datestr(now-t0,13));  %#ok<*VUNUS>
     
+end
+
+%% create the Lbl and populate it
+Lbl = CellLabel;
+Lbl.Reg = Reg; 
+for i=1:numel(CellLabels)
+    %% add to Lbl
+    addLbl(Lbl,CellLabels{i},'base',T(i),'relabel','nearest');
+    addLbl(Lbl,CytoLabels{i},'cyto',T(i),'relabel','nearest');
+    addLbl(Lbl,NucLabels{i},'nuc',T(i),'relabel','nearest');
 end

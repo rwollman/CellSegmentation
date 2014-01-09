@@ -18,6 +18,8 @@ arg.positiontype = 'Position';
 
 arg.crop = [680 680 680 680]; 
 
+arg.register = []; 
+
 arg = parseVarargin(varargin,arg); 
 
 
@@ -37,30 +39,40 @@ if size(c2y,3)~=numel(T)
 end
 
 %% register the stacks 
+if isa(arg.register,'Registration')
+% If arg.register exist than just use it
+    Reg = arg.register;
+    cfp = Reg.register(cfp,T); 
+    c2y = Reg.register(c2y,T); 
+else
 % registration happens such that every image will be registered to the
 % reference image that was taken at the same time as the image used for
 % labeling. This means that we will run the registerStack functions as many
-% times as we have labels. 
+% times as we have labels.
 
-% figure out whoe "belongs" to whon
-Tlbl = Lbl.T; 
-D = abs(repmat(Tlbl(:)',size(T,1),1)-repmat(T(:),1,numel(Tlbl))); 
-[minD,refix]=min(D,[],2); 
-unq = unique(refix); 
-ref2d = imref2d([size(cfp,1) size(cfp,2)]); 
-
-% repeat registration 
-for i=1:numel(unq)
-    ix=find(refix==unq(i)); 
-    [~,mi] = min(minD(ix));
-    [c2y(:,:,ix),Tfrms] = registerStack(c2y(:,:,ix),'reference',mi,'crop',arg.crop,'method','xcorr');
-    for j=1:numel(ix)
-        cfp(:,:,ix(j))=imwarp(cfp(:,:,ix(j)),Tfrms(j),'OutputView',ref2d); 
+    % figure out who "belongs" to whon
+    Tlbl = Lbl.T;
+    Tlbl(~arg.timefunc(Tlbl))=[]; % remove Tlbl according to timefunc
+    D = abs(repmat(Tlbl(:)',size(T,1),1)-repmat(T(:),1,numel(Tlbl)));
+    [minD,refix]=min(D,[],2);
+    unq = unique(refix);
+    ref2d = imref2d([size(cfp,1) size(cfp,2)]);
+    
+    % repeat registration
+    for i=1:numel(unq)
+        ix=find(refix==unq(i));
+        [~,mi] = min(minD(ix));
+        [c2y(:,:,ix),Tfrms] = registerStack(c2y(:,:,ix),'reference',mi,'crop',arg.crop,'method','xcorr');
+        for j=1:numel(ix)
+            cfp(:,:,ix(j))=imwarp(cfp(:,:,ix(j)),Tfrms(j),'OutputView',ref2d);
+        end
     end
 end
 
 %% measure YFP and interpolate for missing values
-yfpsml = stkread(MD,arg.positiontype ,well,'Channel','Yellow','timefunc',arg.timefunc);
+Tlbl = Lbl.T; 
+Tlbl = Tlbl(arg.timefunc(Tlbl)); 
+yfpsml = stkread(MD,arg.positiontype ,well,'Channel','Yellow','timefunc',arg.timefunc,'TimestampFrame',Tlbl);
 % for yfp just subtract background without filtering. 
 for i=1:size(yfpsml,3)
     m=imcrop(yfpsml(:,:,i),arg.crop); 
@@ -75,6 +87,9 @@ else
     yfprow = reshape(yfpsml,size(cfp,1)*size(cfp,2),size(yfpsml,3))';
     yfp = interp1(Tlbl,yfprow,T,'nearest','extrap');
     yfp = reshape(yfp',[Lbl.sz numel(T)]);
+end
+if isa(arg.register,'Registration')
+    yfp = Reg.register(yfp,T); 
 end
 % save memory
 clear yfpsml; 

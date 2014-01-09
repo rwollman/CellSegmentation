@@ -1,4 +1,4 @@
-function [Lbl,NucLabels] = segmentNucleiOnly(MD,well,varargin)
+function [Lbl,NucLabels,T,msk] = segmentNucleiOnly(MD,well,varargin)
 
 %% define analysis parameters
 % parameters for nuclei detection
@@ -14,26 +14,27 @@ arg.positiontype = 'Position';
 
 arg.register = []; % optional registration object
 
+arg.timefunc = @(t) true(size(t));
+
 arg = parseVarargin(varargin,arg); 
     
 %% read the Hoescht stack
-nuc = stkread(MD,arg.positiontype,well,'Channel','DeepBlue');
+nuc = stkread(MD,arg.positiontype,well,'Channel','DeepBlue','timefunc',arg.timefunc);
 
 %% Create the CellLabel object
 Lbl = CellLabel;
 
 %% get timepoints for the Label matrices
-T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue',arg.positiontype,well);
+T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue',arg.positiontype,well,'timefunc',arg.timefunc);
 T = cat(1,T{:});
 [T,ordr]= sort(T);
 nuc=nuc(:,:,ordr); 
 
 %% register if requested or if Registration object was passed as an input arguemtn
 if islogical(arg.register) && arg.register
-    Reg = Registration;
     [nuc,Tforms] = registerStack(nuc);
-    Reg.Tforms = Tforms;
-    Reg.T = T; 
+    Reg = Registration(T,Tforms);
+    arg.register = Reg; 
 elseif ~isempty(arg.register) && isa(arg.register,'Registration')
     Reg = arg.register; 
     nuc = Reg.register(nuc,T); 
@@ -108,4 +109,7 @@ end
 for i=1:numel(NucLabels)
     addLbl(Lbl,NucLabels{i} ,'base',T(i),'relabel','nearest');
     addLbl(Lbl,NucLabels{i} ,'nuc',T(i),'relabel','nearest');
+end
+if isa(arg.register,'Registration')
+    Lbl.Reg = Reg;
 end
