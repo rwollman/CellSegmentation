@@ -15,6 +15,7 @@ arg.timefunc = @(t) true(size(t));
 arg.projectnucandcyto = false;
 
 % parameters for nuclei detection
+arg.nuc_channel = 'DeepBlue'; 
 arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
 arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
@@ -40,9 +41,9 @@ Lbl = CellLabel;
 %% read data
 % read Hoecht images and find the corresponding yellow image using the
 % frame Timestamp;
-T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',well,'timefunc',arg.timefunc);
+T = MD.getSpecificMetadata('TimestampFrame','Channel',arg.nuc_channel,'Position',well,'timefunc',arg.timefunc);
 T=cat(1,T{:});
-nuc = stkread(MD,'Position',well,'Channel','DeepBlue','TimestampFrame',T);
+nuc = stkread(MD,'Position',well,'Channel',arg.nuc_channel,'TimestampFrame',T);
 yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',T);
 
 [~,ordr]=sort(T); 
