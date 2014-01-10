@@ -23,10 +23,12 @@ end
 
 %% subtrack bacground (for all stack at once...); 
 if arg.background
-    CaStk = backgroundSubtraction(CaStk);
+    msk = nanmean(CaStk,3);
+    msk = msk>prctile(msk(:),5);
+    CaStk = backgroundSubtraction(CaStk,'msk',msk);
     fprintf('Finsihed subtracting background')
 end
 
 %% do actual measurements
-Ca = meanIntensityPerLabel(Lbl,CaStk,T,'func','median','type','nuc');
+Ca = meanIntensityPerLabel(Lbl,CaStk,T,'func','mean','type','nuc');
 
