@@ -19,7 +19,8 @@ function [ R ] = ProcessCalciumData( pth,varargin )
     arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
     arg.nuc_minarea = 30; % smaller then this its not a nuclei
     arg.mindistancefromedge = 150;
-
+    arg.timefunc = @(t) true(size(t)); 
+    
     %%
     md = Metadata(pth);
     R = MultiPositionSingleCellResults(pth);
@@ -33,12 +34,12 @@ function [ R ] = ProcessCalciumData( pth,varargin )
     for j=1:numel(R.PosNames)
 
         %% read the Hoescht stack
-        nuc = stkread(md,'Position',R.PosNames{j},'Channel','DeepBlue');
+        nuc = stkread(md,'Position',R.PosNames{j},'Channel','DeepBlue','timefunc',arg.timefunc);
         %% Create the CellLabel object
         Lbl = CellLabel;
 
         %% get timepoints for the Label matrices
-        T = md.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',R.PosNames{j});
+        T = md.getSpecificMetadata('TimestampFrame','Channel','DeepBlue','Position',R.PosNames{j},'timefunc',arg.timefunc);
         T = cat(1,T{:});
         T = sort(T);
 
@@ -116,7 +117,7 @@ function [ R ] = ProcessCalciumData( pth,varargin )
 
 
         %% read Yellow
-        ca = stkread(md,'Position',R.PosNames{j},'Channel','Yellow');
+        ca = stkread(md,'Position',R.PosNames{j},'Channel','Yellow','timefunc',arg.timefunc);
         ca1 = ca(:,:,1);
         msk = ca1>prctile(ca1(:),5);
 
