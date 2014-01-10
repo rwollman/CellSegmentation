@@ -7,19 +7,21 @@ arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
 arg.nuc_suppress = 0.05; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
 arg.nuc_stretch = [1 99]; 
-
 arg.mindistancefromedge =150;
-
 arg.positiontype = 'Position'; 
-
 arg.register = []; % optional registration object
-
 arg.timefunc = @(t) true(size(t));
+arg.project = false; 
+
 
 arg = parseVarargin(varargin,arg); 
     
 %% read the Hoescht stack
 nuc = stkread(MD,arg.positiontype,well,'Channel','DeepBlue','timefunc',arg.timefunc);
+if arg.project
+    [~,~,nm]=size(nuc); 
+    nuc = repmat(mean(nuc,3),[1 1 nm]);
+end
 
 %% Create the CellLabel object
 Lbl = CellLabel;
