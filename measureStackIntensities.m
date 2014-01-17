@@ -25,7 +25,7 @@ end
 if arg.background
     msk = nanmean(CaStk,3);
     msk = msk>prctile(msk(:),5);
-    CaStk = backgroundSubtraction(CaStk,'msk',msk);
+    CaStk = backgroundSubtraction(CaStk,'msk',msk,'smoothstack',0);
     fprintf('Finsihed subtracting background')
 end
 
