@@ -29,6 +29,8 @@ arg.cyto_minyfp = 0.01; % mimimal yfp intensity in the cytoplasm (absolute units
 arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
 arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
+arg.replicatenuc = false; 
+
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
@@ -45,6 +47,10 @@ T = MD.getSpecificMetadata('TimestampFrame','Channel',arg.nuc_channel,'Position'
 T=cat(1,T{:});
 nuc = stkread(MD,'Position',well,'Channel',arg.nuc_channel,'TimestampFrame',T);
 yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',T);
+
+if arg.replicatenuc && size(nuc,3)==1
+    nuc = rempat(nuc,[1 1 size(yfp,3)]); 
+end
 
 [~,ordr]=sort(T); 
 nuc=nuc(:,:,ordr); 
