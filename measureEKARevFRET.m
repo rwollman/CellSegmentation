@@ -118,7 +118,10 @@ for i=1:n
     c2y(:,:,i) = c2y(:,:,i)-c2y_fit(i); 
     cfp(:,:,i) = cfp(:,:,i)-cfp_fit(i); 
 end
-    
+
+cfp=cfp(:,:,1:n); 
+c2y = c2y(:,:,1:n); 
+
 %% Bleedthrough calculations
 ratio = (c2y-arg.cfp2fretbleedthrough*cfp-arg.yfp2fretbleedthrough*yfp)./cfp; 
 clear c2y yfp cfp % save memory
