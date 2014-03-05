@@ -10,13 +10,13 @@ stkshow('close','all')
 
 %%
 %posArray = {'B04','B05','B06','B08','B09','B10'};
-posArray = {'B04'};
+posArray = {'B03'};
 TcaArray = cell(length(posArray),1);
 meanCaArray = cell(length(posArray),1);
 for arrayInd = 1:length(posArray);
     disp(strcat('Analyzing well ',posArray{arrayInd}));
     %% define the directory of the raw data, its metadata, and the well to be analyzed
-    pth = '/data2/Images/Jason/CalciumDynamics/ATPdoseResponse_2013Dec18';
+    pth = '/data2/Images/Jason/CalciumDynamics/ATPdoseResponse_2014Mar03';
     md = Metadata(pth);
     pos = posArray{arrayInd};
 
@@ -46,6 +46,7 @@ for arrayInd = 1:length(posArray);
     
 end
 %%
+%{
 clr = jet(length(posArray));
 figure(1);
 clf;
@@ -57,6 +58,7 @@ legend('10 uM','3.33 uM','1 uM', '0.33 uM', '0.1 uM', ' control');
 title('Experimental Data');
 xlabel('Time (seconds)');
 ylabel('concentration (micromolar)');
+%}
 %{
 %% plot all the time series
 TcaArray = { TcaB04, TcaB05, TcaB06, TcaB08, TcaB09, TcaB10};
