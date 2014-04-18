@@ -32,23 +32,25 @@ arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
 arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
 arg.replicatenuc = false; 
+arg.mindistancefromedge =150;
+
+arg.positiontype = 'Position';
+
 
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
 Lbl = CellLabel;
-% 
-% %% get timepoints for the Label matrices
-% T = MD.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',well,'timefunc',arg.timefunc);
-% T = cat(1,T{:});
 
 %% read data
 % read Hoecht images and find the corresponding yellow image using the
 % frame Timestamp;
 T = MD.getSpecificMetadata('TimestampFrame','Channel',arg.nuc_channel,arg.positiontype,well,'timefunc',arg.timefunc);
 T=cat(1,T{:});
+
 nuc = stkread(MD,'Position',well,'Channel',arg.nuc_channel,'TimestampFrame',T);
 yfp = stkread(MD,'Position',well,'Channel','Yellow','TimestampFrame',T);
+
 
 if arg.replicatenuc && size(nuc,3)==1
     yfp = stkread(MD,arg.positiontype,well,'Channel','Yellow');

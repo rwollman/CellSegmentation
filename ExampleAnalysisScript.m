@@ -4,11 +4,8 @@ close all
 clc
 stkshow('close','all');
 
-% place where the copy of the EKARevAnalysisFunctions are (the EKARev repo)
-addpath /home/rwollman/Projects/InVitroWounding/EKARevAnalysisFunctions/
-
 %% Key user input - the path where the images are
-pth='/data/Images/anna/InVitroWounding/EKARev_ATP_GM6001_2013Jul09'; 
+pth='/data/Images/where/your/dataset/is'; 
 
 
 %% Init MD / R and create the Props per position
@@ -31,10 +28,15 @@ for i=1:numel(R.PosNames)
     
     % measure intensities
     [Erk,Terk,FretStk] = measureEKARevFRET(MD,R.PosNames{i},Lbl);
+    [Ca,Tca,CaStk] = measureMCF10ACa2(MD,grp{i},Lbl); 
+    
+    % create movies
+    R.stack2movie(FretStk,sprintf('%s_Erk',R.PosNames{i}));
+    R.stack2movie(CaStk,sprintf('%s_Erk',R.PosNames{i}),'colormap',gray(256)); 
     
     % add measurements
     addTimeSeries(R,'Erk',Erk,Terk,R.PosNames{i}); 
-    add(R,'FretStack',FretStk,R.PosNames{i}); 
+    addTimeSeries(R,'Ca',Ca,Tca,R.PosNames{i}); 
     
     % add Position properties
     for j=1:numel(Props)
