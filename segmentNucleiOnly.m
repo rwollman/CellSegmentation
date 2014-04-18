@@ -7,6 +7,7 @@ arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
 arg.nuc_suppress = 0.05; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
 arg.nuc_stretch = [1 99]; 
+arg.nuc_channel = 'DeepBlue'; 
 arg.mindistancefromedge =150;
 arg.positiontype = 'Position'; 
 arg.register = []; % optional registration object
@@ -17,7 +18,7 @@ arg.project = false;
 arg = parseVarargin(varargin,arg); 
     
 %% read the Hoescht stack
-nuc = stkread(MD,arg.positiontype,well,'Channel','DeepBlue','timefunc',arg.timefunc);
+nuc = stkread(MD,arg.positiontype,well,'Channel',arg.nuc_channel ,'timefunc',arg.timefunc);
 if arg.project
     [~,~,nm]=size(nuc); 
     nuc = repmat(mean(nuc,3),[1 1 nm]);
@@ -27,7 +28,7 @@ end
 Lbl = CellLabel;
 
 %% get timepoints for the Label matrices
-T = MD.getSpecificMetadata('TimestampFrame','Channel','DeepBlue',arg.positiontype,well,'timefunc',arg.timefunc);
+T = MD.getSpecificMetadata('TimestampFrame','Channel',arg.nuc_channel,arg.positiontype,well,'timefunc',arg.timefunc);
 T = cat(1,T{:});
 [T,ordr]= sort(T);
 nuc=nuc(:,:,ordr); 
