@@ -4,6 +4,7 @@ arg.timefunc = @(t) true(size(t));
 arg.channel = ''; 
 arg.background = true; 
 arg.register = true; 
+arg.region = 'nuc'; 
 arg = parseVarargin(varargin,arg); 
 
 if isempty(arg.channel)
@@ -11,9 +12,9 @@ if isempty(arg.channel)
 end
 
 
-T = MD.getSpecificMetadata('TimestampFrame','Position',well,'Channel',arg.channel,'timefunc',arg.timefunc); 
+[CaStk,indx] = stkread(MD,'Position',well,'Channel',arg.channel,'timefunc',arg.timefunc,'sortby','TimestampFrame');
+T = MD.getSpecificMetadata('TimestampFrame',indx); 
 T = cat(1,T{:}); 
-CaStk = stkread(MD,'Position',well,'Channel',arg.channel,'timefunc',arg.timefunc);
 
 %% register
 if arg.register
@@ -25,10 +26,10 @@ end
 if arg.background
     msk = nanmean(CaStk,3);
     msk = msk>prctile(msk(:),5);
-    CaStk = backgroundSubtraction(CaStk,'msk',msk,'smoothstack',0);
+    CaStk = backgroundSubtraction(CaStk,'msk',msk);
     fprintf('Finsihed subtracting background')
 end
 
 %% do actual measurements
-Ca = meanIntensityPerLabel(Lbl,CaStk,T,'func','mean','type','nuc');
+Ca = meanIntensityPerLabel(Lbl,CaStk,T,'func','mean','type',arg.region);
 
