@@ -47,6 +47,10 @@ if isa(arg.register,'Registration')
     Reg = arg.register;
     cfp = Reg.register(cfp,T); 
     c2y = Reg.register(c2y,T); 
+elseif islogical(arg.register) && arg.register && isa(Lbl.Reg,'Registration')
+    Reg = Lbl.Reg; 
+    cfp = Reg.register(cfp,T);
+    c2y = Reg.register(c2y,T);
 else
 % registration happens such that every image will be registered to the
 % reference image that was taken at the same time as the image used for
