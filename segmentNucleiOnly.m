@@ -1,4 +1,4 @@
-function [Lbl,NucLabels,T,msk] = segmentNucleiOnly(MD,well,varargin)
+function [Lbl,NucLabels,T,msk,Reg] = segmentNucleiOnly(MD,well,varargin)
 
 %% define analysis parameters
 % parameters for nuclei detection
