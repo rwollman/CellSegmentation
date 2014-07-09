@@ -4,11 +4,11 @@ arg.timefunc = @(t) true(size(t));
 arg.channel = ''; 
 arg.background = true; 
 arg.register = true; 
-arg.timestamptype='TimestampFrame'; 
 arg.positiontype='Position';
 arg.cellregiontouse = 'nuc'; 
 arg.mskmethod = '5percentile';
 arg.background_smooth = 'spline'; 
+
 arg = parseVarargin(varargin,arg); 
 
 
@@ -17,9 +17,12 @@ if isempty(arg.channel)
 end
 
 
-T = MD.getSpecificMetadata(arg.timestamptype,arg.positiontype,well,'Channel',arg.channel,'timefunc',arg.timefunc); 
-T = cat(1,T{:}); 
-CaStk = stkread(MD,arg.positiontype,well,'Channel',arg.channel,'timefunc',arg.timefunc);
+[CaStk,indx] = stkread(MD,arg.positiontype,well,'Channel',arg.channel,'timefunc',arg.timefunc,'sortby','TimestampFrame');
+T = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
+if iscell(T)
+    T = cat(1,T{:});
+end
+
 
 %% register
 if arg.register && isa(Lbl.Reg,'Registration')
