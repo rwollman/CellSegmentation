@@ -13,7 +13,7 @@ end
 
 
 [CaStk,indx] = stkread(MD,'Position',well,'Channel',arg.channel,'timefunc',arg.timefunc,'sortby','TimestampFrame');
-T = MD.getSpecificMetadata('TimestampFrame',indx); 
+T = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
 T = cat(1,T{:}); 
 
 %% register
