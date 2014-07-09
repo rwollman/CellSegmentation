@@ -66,11 +66,34 @@ CytoLabels = cell(n,1);
 
 
 %% read cytoplasm channel and register it with Reg
-yfp = stkread(MD,'Position',well,'Channel',arg.cyto_channel,'TimestampFrame',T);
+<<<<<<< local
+[yfp,indx] = stkread(MD,'Position',well,'Channel','Yellow');
+
+% get Tyfp for the cytoplasm based on indexes where Tyfp is based on Frame
+Tyfp = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
+
 if isa(Reg,'Registration') % if Reg returns not false its a 
-    yfp = Reg.register(yfp,T);
+    yfp = Reg.register(yfp,Tyfp); 
 end
 
+%% remove extra timepoints from the nuclabel if there are and duplicate the nuclbl as needed. 
+% where we drop any nuclbl where the Tyfp 
+% neighbor gets dropped 
+NucLabelToKeep = ismember(T,Tyfp); 
+NucLabels = NucLabels(NucLabelToKeep); 
+T = T(NucLabelToKeep); 
+
+tfYfpWithNuc = ismember(Tyfp,T);
+NucLabelsAll = cell(numel(Tyfp),1); 
+NucLabelsAll(tfYfpWithNuc)=NucLabels; 
+ixMissingNucs = find(cellfun(@isempty,NucLabelsAll)); 
+ 
+for i=1:numel(ixMissingNucs)
+    dT = abs(T-Tyfp(ixMissingNucs(i)));  
+    [~,mi]=min(dT); 
+    NucLabelsAll{ixMissingNucs(i)} = NucLabels{mi}; 
+end
+NucLabels = NucLabelsAll; 
 
 %% segment cytoplasm
 for i=1:numel(NucLabels)
