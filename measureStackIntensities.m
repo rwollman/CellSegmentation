@@ -19,8 +19,10 @@ end
 
 [CaStk,indx] = stkread(MD,arg.positiontype,well,'Channel',arg.channel,'timefunc',arg.timefunc,'sortby','TimestampFrame');
 T = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
+
 if iscell(T)
-    T = cat(1,T{:});
+    CaStk = CaStk(:,:,~cellfun(@isempty,T));
+    T = cat(1,T{~cellfun(@isempty,T)});
 end
 
 

@@ -64,8 +64,8 @@ end
 
 
 %% read cytoplasm channel and register it with Reg
+[yfp,indx] = stkread(MD,arg.cyto_channel,arg.positiontype,well);
 
-[yfp,indx] = stkread(MD,'Position',well,'Channel','Yellow');
 
 % get Tyfp for the cytoplasm based on indexes where Tyfp is based on Frame
 Tyfp = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
