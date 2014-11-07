@@ -41,6 +41,8 @@ if islogical(arg.register) && arg.register
 elseif ~isempty(arg.register) && isa(arg.register,'Registration')
     Reg = arg.register; 
     nuc = Reg.register(nuc,T); 
+else
+    Reg = []; 
 end
 
 %% first subtrack background for entire stack
@@ -57,7 +59,7 @@ nuc = backgroundSubtraction(nuc,'msk',logical(msk));
 NucLabels = cell(size(nuc,3),1);
 
 %% for each well, segment all nucleri
-for i=1:size(nuc,3)
+parfor i=1:size(nuc,3)
     %%
     %% segment nucleus
     % overall strategy -
