@@ -82,6 +82,8 @@ end
 %% create the Lbl and populate it
 Lbl = CellLabel;
 Lbl.saveToFile=true; 
+Lbl.pth=MD.pth; 
+Lbl.posname = well; 
 Lbl.Reg = Reg; 
 for i=1:numel(T)
     %% add to Lbl
