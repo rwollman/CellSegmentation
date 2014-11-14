@@ -27,7 +27,7 @@ end
 
 
 %% register
-if arg.register && isa(Lbl.Reg,'Registration')
+if arg.register && isa(Lbl.Reg,'Registration') 
     CaStk = Lbl.Reg.register(CaStk,T);
     fprintf('Finished registration')
 end
@@ -52,5 +52,11 @@ if arg.background
 end
 
 %% do actual measurements
-Ca = meanIntensityPerLabel(Lbl,CaStk,T,'func','mean','type',arg.cellregiontouse);
-
+if iscell(arg.cellregiontouse)
+    Ca = cell(size(arg.cellregiontouse));
+    for i=1:numel(arg.cellregiontouse)
+        Ca{i} = meanIntensityPerLabel(Lbl,CaStk,T,'func','mean','type',arg.cellregiontouse{i});
+    end
+else
+    Ca = meanIntensityPerLabel(Lbl,CaStk,T,'func','mean','type',arg.cellregiontouse);
+end
