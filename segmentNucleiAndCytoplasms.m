@@ -10,11 +10,13 @@ arg.timefunc = @(t) true(size(t));
 
 arg.projectnucandcyto = false;
 
-% parameters for nuclei detection
+% parameters for nuclei detection - mostly critical for under/over
+% segmentation
 arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
 arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
+
 arg.nuc_stretch = [1 99]; 
 arg.nuc_channel = 'DeepBlue'; 
 
@@ -24,16 +26,22 @@ arg.mindistancefromedge =0;
 
 % parameters for cell detection
 arg.cyto_channel = 'Yellow'; 
+
+% chose algorithm to use to threshold the cyto
+arg.cyto_threshalgo='nucleibased'; % other option is {'optthresh'};
+
+% relevant for the nucleibased algorithm 
 arg.cyto_dilate = strel('disk',35);
-arg.cyto_minarea = 100; % will remove cells with cytoplasm area smaller then this
-arg.cyto_maxarea = 2000; % will remove cells with cytoplasm area bigger then this
-arg.cyto_minyfp = 0.01; % mimimal yfp intensity in the cytoplasm (absolute units, euqal to 2^16 of ~650)
-arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
 arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
-arg.cyto_threshalgo='nucleibased'; % other option is {'optthresh'}; 
+% relevant for the optthresh algorithm
 arg.cyto_threshmethod='otsu'; 
 arg.cyto_threshtransform='log'; 
+
+arg.cyto_minarea = 100; % will remove cells with cytoplasm area smaller then this
+arg.cyto_maxarea = 2000; % will remove cells with cytoplasm area bigger then this
+arg.cyto_minyfp = 0; % mimimal yfp intensity in the cytoplasm (absolute units, euqal to 2^16 of ~650)
+arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
 
 arg.positiontype = 'Position'; 
 
@@ -114,8 +122,7 @@ for i=1:numel(NucLabels)
     % next few steps are use the yfp intensity
     yfpprj = yfp(:,:,i);
     % init a false matrix for real cyto
-    switch arg.cytothreshmethod
-       
+    switch arg.cyto_threshalgo  
        
         case 'nucleibased'
             % create an area that surrounds cells with imclose, since nuclei are
