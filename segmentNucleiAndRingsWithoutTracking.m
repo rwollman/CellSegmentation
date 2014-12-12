@@ -9,7 +9,7 @@ arg.positiontype = 'Position';
 arg.register = []; % optional registration object
 arg.timefunc = @(t) true(size(t));
 arg.cyto_ringstrel = strel('disk',15); 
-arg.sz =  [2048        2064]; 
+arg.sz =  [2048  2064]; 
 arg = parseVarargin(varargin,arg); 
     
 
@@ -22,7 +22,7 @@ nuc=nuc(:,:,ordr);
 
 %% register if requested or if Registration object was passed as an input arguemtn
 if islogical(arg.register) && arg.register
-    [nuc,Tforms] = registerStack(nuc);
+    [nuc,Tforms] = registerStack(nuc,'crop',[400 400 1200 1200],'method','xcorr','reference',ceil(size(nuc,3)/3),'maxdisp',100);
     Reg = Registration(T,Tforms);
     arg.register = Reg; 
 elseif ~isempty(arg.register) && isa(arg.register,'Registration')
@@ -60,10 +60,13 @@ end
 BW = false(size(nuc)); 
 for j=1:numel(arg.cyto_channels)
     MAPK = stkread(MD,'TimestampFrame',T,'Channel',arg.cyto_channels{j});
+    if islogical(arg.register) && arg.register
+        Reg.register(MAPK,T); 
+    end
     MAPK = imfilter(MAPK,fspecial('gauss',5,3)); 
     parfor i=1:numel(T)
         %% segment cytoplasm
-        BW(:,:,i) = BW(:,:,i) | optThreshold(MAPK(:,:,i),'msk',msk,'method','gm','transform','log','subsample',10000);
+        BW(:,:,i) = BW(:,:,i) | optThreshold(MAPK(:,:,i),'msk',msk,'method','otsu','transform','log');
     end
 end
 
