@@ -10,30 +10,46 @@ arg.timefunc = @(t) true(size(t));
 
 arg.projectnucandcyto = false;
 
-% parameters for nuclei detection
+% parameters for nuclei detection - mostly critical for under/over
+% segmentation
 arg.nuc_erode = strel('disk',3); % initial erosion to enhance nuclei centers
 arg.nuc_smooth = fspecial('gauss',7,5); % filtering to smooth it out
 arg.nuc_suppress = 0.01; % supression of small peaks - units are in a [0 1] space
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
+
 arg.nuc_stretch = [1 99]; 
 arg.nuc_channel = 'DeepBlue'; 
+
 arg.project = false; 
 
 arg.mindistancefromedge =0;
 
 % parameters for cell detection
 arg.cyto_channel = 'Yellow'; 
+
+% chose algorithm to use to threshold the cyto
+arg.cyto_threshalgo='nucleibased'; % other option is {'optthresh'};
+
+% relevant for the nucleibased algorithm 
 arg.cyto_dilate = strel('disk',35);
+arg.cyto_thresh = @median; % how to determine the intracellular threshold
+
+% relevant for the optthresh algorithm
+arg.cyto_threshmethod='otsu'; 
+arg.cyto_threshtransform='log'; 
+
 arg.cyto_minarea = 100; % will remove cells with cytoplasm area smaller then this
 arg.cyto_maxarea = 2000; % will remove cells with cytoplasm area bigger then this
-arg.cyto_minyfp = 0.01; % mimimal yfp intensity in the cytoplasm (absolute units, euqal to 2^16 of ~650)
+arg.cyto_minyfp = 0; % mimimal yfp intensity in the cytoplasm (absolute units, euqal to 2^16 of ~650)
 arg.cyto_distfromedge=100; % remove cells that are in the edge of the image
-arg.cyto_thresh = @median; % how to determine the intracellular threshold
 
 arg.positiontype = 'Position'; 
 
 arg.reg_channel = 'CyanToYellow'; 
 arg.register = []; 
+
+arg.track_method='nearest'; 
+
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
@@ -102,37 +118,46 @@ for i=1:numel(NucLabels)
     % optThresh since the entire image is foreground. So we relay on cell
     % intrinsic thresholding based on combination of proximity to nuclei
     % and yfp intensity that is higher then the median of the nucleus.
-    
-    % create an area that surrounds cells with imclose, since nuclei are
-    % close to each other this will create a continus true in areas with
-    % cells and false in areas without cells.
-    possiblecellbw = imclose(nuclbl>0,arg.cyto_dilate);
-    
-    % now use watershed to divide the foreground area into possible cells
-    posscytolbl = segmentUsingSeeds(possiblecellbw,nuclbl,'method','watershed');
-    
+     
     % next few steps are use the yfp intensity
     yfpprj = yfp(:,:,i);
-    
-    % get pixel values for all labels
-    PxlIdx_posscyto = regionprops(posscytolbl,'PixelIdxList');
-    PxlIdx_posscyto = {PxlIdx_posscyto.PixelIdxList};
-    PxlIdx_nuc = regionprops(nuclbl,'PixelIdxList');
-    PxlIdx_nuc = {PxlIdx_nuc.PixelIdxList};
-    
     % init a false matrix for real cyto
-    cytobw = false(size(yfpprj));
-    % for each possible cells, find out the median yfp intensity in the
-    % nucleus (cyto_thresh is a function to determine threshold, defaults
-    % to median) then threshold the possible pixels that might be a cell
-    % based on that threshold. This effectivly defines a cells as the
-    % pixels that "belog" to a nuclei based on proximity that are also
-    % higher in intensity then the median of the nucleus.
-    for j=1:numel(PxlIdx_posscyto)
-        thrsh = arg.cyto_thresh(yfpprj(PxlIdx_nuc{j}));
-        ix = yfpprj(PxlIdx_posscyto{j})>thrsh;
-        cytobw(PxlIdx_posscyto{j}(ix)) = true;
+    switch arg.cyto_threshalgo  
+       
+        case 'nucleibased'
+            % create an area that surrounds cells with imclose, since nuclei are
+            % close to each other this will create a continus true in areas with
+            % cells and false in areas without cells.
+            possiblecellbw = imclose(nuclbl>0,arg.cyto_dilate);
+            
+            % now use watershed to divide the foreground area into possible cells
+            posscytolbl = segmentUsingSeeds(possiblecellbw,nuclbl,'method','watershed');
+            
+            
+            
+            % get pixel values for all labels
+            PxlIdx_posscyto = regionprops(posscytolbl,'PixelIdxList');
+            PxlIdx_posscyto = {PxlIdx_posscyto.PixelIdxList};
+            PxlIdx_nuc = regionprops(nuclbl,'PixelIdxList');
+            PxlIdx_nuc = {PxlIdx_nuc.PixelIdxList};
+            
+            
+            cytobw = false(size(yfpprj));
+            % for each possible cells, find out the median yfp intensity in the
+            % nucleus (cyto_thresh is a function to determine threshold, defaults
+            % to median) then threshold the possible pixels that might be a cell
+            % based on that threshold. This effectivly defines a cells as the
+            % pixels that "belog" to a nuclei based on proximity that are also
+            % higher in intensity then the median of the nucleus.
+            for j=1:numel(PxlIdx_posscyto)
+                thrsh = arg.cyto_thresh(yfpprj(PxlIdx_nuc{j}));
+                ix = yfpprj(PxlIdx_posscyto{j})>thrsh;
+                cytobw(PxlIdx_posscyto{j}(ix)) = true;
+            end
+        case 'optthresh'
+            cytobw=optThreshold(yfpprj,'msk',msk,'method',arg.cyto_threshmethod,'transform',arg.cyto_threshtransform);
     end
+    
     
     % now that we have the trye
     cytolbl = segmentUsingSeeds(cytobw,nuclbl,'method','watershed');
@@ -188,7 +213,7 @@ Lbl = CellLabel;
 Lbl.Reg = Reg; 
 for i=1:numel(CellLabels)
     %% add to Lbl
-    addLbl(Lbl,CellLabels{i},'base',T(i),'relabel','nearest');
-    addLbl(Lbl,CytoLabels{i},'cyto',T(i),'relabel','nearest');
-    addLbl(Lbl,NucLabels{i},'nuc',T(i),'relabel','nearest');
+    addLbl(Lbl,CellLabels{i},'base',T(i),'relabel',arg.track_method);
+    addLbl(Lbl,CytoLabels{i},'cyto',T(i),'relabel',arg.track_method);
+    addLbl(Lbl,NucLabels{i},'nuc',T(i),'relabel',arg.track_method);
 end
