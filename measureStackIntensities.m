@@ -1,4 +1,4 @@
-function [measurement,T,measurementStack] = measureStackIntensities(MD,well,Lbl,varargin)
+function [measurement,T,measurementStack, cellids] = measureStackIntensities(MD,well,Lbl,varargin)
 
 arg.timefunc = @(t) true(size(t));
 arg.channel = ''; 
@@ -7,7 +7,8 @@ arg.register = true;
 arg.positiontype='Position';
 arg.cellregiontouse = 'nuc'; 
 arg.mskmethod = '5percentile';
-arg.background_smooth = 'spline'; 
+arg.background_smooth = 'spline';
+arg.func = 'mean';
 
 arg = parseVarargin(varargin,arg); 
 
@@ -54,9 +55,12 @@ end
 %% do actual measurements
 if iscell(arg.cellregiontouse)
     measurement = cell(size(arg.cellregiontouse));
+    cellids = cell(size(arg.cellregiontouse));
     for i=1:numel(arg.cellregiontouse)
         measurement{i} = meanIntensityPerLabel(Lbl,measurementStack,T,'func','mean','type',arg.cellregiontouse{i});
+        cellids{i} = Lbl.cellids;
     end
 else
-    measurement = meanIntensityPerLabel(Lbl,measurementStack,T,'func','mean','type',arg.cellregiontouse);
+    measurement = meanIntensityPerLabel(Lbl,measurementStack,T,'func',arg.func,'type',arg.cellregiontouse);
+    cellids = Lbl.cellids;
 end
