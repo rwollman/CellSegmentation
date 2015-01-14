@@ -64,7 +64,7 @@ end
 
 
 %% read cytoplasm channel and register it with Reg
-[yfp,indx] = stkread(MD,arg.cyto_channel,arg.positiontype,well);
+[yfp,indx] = stkread(MD,'Channel',arg.cyto_channel,arg.positiontype,well);
 
 
 % get Tyfp for the cytoplasm based on indexes where Tyfp is based on Frame
