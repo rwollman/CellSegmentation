@@ -1,24 +1,21 @@
-function [Lbl,NucLabels,CellLabels,CytoLabels] = segmentNucleiAndRingsWithoutTracking(MD,well,varargin)
+function [Lbl,NucLabels,CellLabels,CytoLabels,Timing] = segmentNucleiAndRingsWithoutTracking(MD,well,varargin)
 
 arg.nuc_channel = 'DeepBlue'; 
-arg.nuc_smooth1 = 3.5; % sigma of filtering done to improve thresholding. The size of the nuclei will be eroded by this sigma as well
+arg.nuc_smooth1 = 5; % sigma of filtering done to improve thresholding. The size of the nuclei will be eroded by this sigma as well
 arg.nuc_smooth2 = fspecial('gauss',15,9);
+arg.nuc_smooth3 = 2*arg.nuc_smooth1;
 arg.nuc_smooth = strel('disk',5); 
 arg.cyto_channels = {'Cyan','Yellow','Red'}; 
 arg.positiontype = 'Position'; 
 arg.register = []; % optional registration object
 arg.timefunc = @(t) true(size(t));
-<<<<<<< local
-arg.cyto_ringstrel = strel('disk',13); 
-arg.nuc_margin = strel('disk', 3);
-arg.sz =  [2048        2064]; 
-arg.relabel = 'none';
-=======
 arg.cyto_ringstrel = strel('disk',15); 
+arg.cyto_transform='log'; % other alternative: linear
+arg.cyto_thresholdmethod = 'otsu'; % other alternatives: gm,minerr,robust,localotsu,kmeans
 arg.sz =  [2048  2064]; 
->>>>>>> other
 arg = parseVarargin(varargin,arg); 
     
+t0=now; 
 
 %% get timepoints for the Label matrices
 T = MD.getSpecificMetadata('TimestampFrame','Channel',arg.nuc_channel,arg.positiontype,well,'timefunc',arg.timefunc);
@@ -26,6 +23,9 @@ T = cat(1,T{:});
 nuc = stkread(MD,'TimestampFrame',T,'Channel',arg.nuc_channel); 
 [T,ordr]= sort(T);
 nuc=nuc(:,:,ordr); 
+
+Timing.readnucimages=(now-t0)*60*60*24;
+t0=now; 
 
 %% register if requested or if Registration object was passed as an input arguemtn
 if islogical(arg.register) && arg.register
@@ -39,6 +39,9 @@ else
     Reg = []; 
 end
 
+Timing.registration=(now-t0)*60*60*24;
+t0=now; 
+
 %% first subtrack background for entire stack
 % subtract bacgkround using a mask to avoid corner issues
 nucprj = mean(nuc,3);
@@ -51,17 +54,25 @@ NucLabels = zeros([arg.sz size(nuc,3)],'uint16');
 CellLabels = zeros([arg.sz size(nuc,3)],'uint16');
 CytoLabels = zeros([arg.sz size(nuc,3)],'uint16');
 
+Timing.backgroundsubtraction=(now-t0)*60*60*24;
+t0=now; 
+
+
 %% for each well, segment all nuclei
 nuc_smooth1 = arg.nuc_smooth1; 
-nuc_smooth2=arg.nuc_smooth2; 
+nuc_smooth2=arg.nuc_smooth2;
+nuc_smooth3 = arg.nuc_smooth3;
 parfor i=1:numel(T)
     %% segment all nuclei
-    nucfilt = imfilter(nuc(:,:,i),fspecial('gauss',2*nuc_smooth1,nuc_smooth1)) ;
+    nucfilt = imfilter(nuc(:,:,i),fspecial('gauss',nuc_smooth3,nuc_smooth1)) ;
     bw = optThreshold(nucfilt,'msk',msk,'method','localotsu','transform','none');
     pks = imregionalmax(imfilter(nucfilt,nuc_smooth2));
     bw  = bw &~bwareaopen(bw,1000);
     NucLabels(:,:,i) = segmentUsingSeeds(bw,bwlabel(pks & bw));
 end
+
+Timing.nucleisegmentation=(now-t0)*60*60*24;
+t0=now; 
 
 %% create a whole cell binary mask
 BW = true(size(nuc)); 
@@ -70,29 +81,30 @@ for j=1:numel(arg.cyto_channels)
     if islogical(arg.register) && arg.register
         Reg.register(MAPK,T); 
     end
-    MAPK = imfilter(MAPK,fspecial('gauss',5,3)); 
+    MAPK = imfilter(MAPK,fspecial('gauss',5,3));
     parfor i=1:numel(T)
         %% segment cytoplasm
-<<<<<<< local
-        BW(:,:,i) = BW(:,:,i) & optThreshold(MAPK(:,:,i),'msk',msk,'method','gm','transform','log','subsample',10000);
-=======
-        BW(:,:,i) = BW(:,:,i) | optThreshold(MAPK(:,:,i),'msk',msk,'method','otsu','transform','log');
->>>>>>> other
+        BW(:,:,i) = BW(:,:,i) & optThreshold(MAPK(:,:,i),'msk',msk,'method',arg.cyto_thresholdmethod,'transform',arg.cyto_transform);
     end
 end
+
+Timing.cytothreshold=(now-t0)*60*60*24;
+t0=now; 
 
 %% segment cell using nuc and finalize three labels matriceis
 clear MAPK
 cyto_ringstrel=arg.cyto_ringstrel; 
-nuc_margin=arg.nuc_margin;
 parfor i=1:numel(T)
-    bw = (BW(:,:,i) & imdilate(NucLabels(:,:,i)>0,cyto_ringstrel));% & ~(imdilate(NucLabels(:,:,i)>0, strel('disk', 3)));
+    bw = BW(:,:,i) & imdilate(NucLabels(:,:,i)>0,cyto_ringstrel);
     CellLabels(:,:,i) = segmentUsingSeeds(bw,NucLabels(:,:,i)); 
     cyt = CellLabels(:,:,i); 
     cyt(NucLabels(:,:,i)>0)=0; 
     CytoLabels(:,:,i)=cyt; 
-    NucLabels(:,:,i) = imerode(NucLabels(:,:,i),strel('disk',(floor(nuc_smooth1)))); 
+    NucLabels(:,:,i) = imerode(NucLabels(:,:,i),strel('disk',nuc_smooth1)); 
 end
+
+Timing.cytosegmentation=(now-t0)*60*60*24;
+t0=now; 
 
 %% create the Lbl and populate it
 Lbl = CellLabel;
@@ -102,7 +114,10 @@ Lbl.posname = well;
 Lbl.Reg = Reg; 
 for i=1:numel(T)
     %% add to Lbl
-    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel',arg.relabel);
-    addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel',arg.relabel);
-    addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel',arg.relabel);
+    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel','none');
+    addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel','none');
+    addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel','none');
 end
+   
+Timing.createlabelobject=(now-t0)*60*60*24;
+

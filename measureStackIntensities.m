@@ -9,6 +9,7 @@ arg.cellregiontouse = 'nuc';
 arg.mskmethod = '5percentile';
 arg.background_smooth = 'spline';
 arg.func = 'mean';
+arg.percentile = 0; % Parameter passed to backgroundSubtraction
 
 arg = parseVarargin(varargin,arg); 
 
@@ -48,7 +49,7 @@ if arg.background
         otherwise
             error('Mask call for background subtractin not supported!, check for typos...')
     end
-    measurementStack = backgroundSubtraction(measurementStack,'msk',msk,'smoothstk',false,'smoothmethod',arg.background_smooth);
+    measurementStack = backgroundSubtraction(measurementStack,'msk',msk,'smoothstk',false,'smoothmethod',arg.background_smooth, 'percentile', arg.percentile);
     fprintf('Finsihed subtracting background')
 end
 
