@@ -8,7 +8,7 @@ arg.nuc_suppress = 0.05; % supression of small peaks - units are in a [0 1] spac
 arg.nuc_minarea = 30; % smaller then this its not a nuclei
 arg.nuc_stretch = [1 99]; 
 arg.nuc_channel = 'DeepBlue'; 
-arg.mindistancefromedge =150;
+arg.shrinkmsk = strel('disk',50);
 arg.positiontype = 'Position'; 
 arg.register = []; % optional registration object
 arg.timefunc = @(t) true(size(t));
@@ -51,6 +51,9 @@ nucprj = mean(nuc,3);
 msk = nucprj>prctile(nucprj(:),5);
 msk = imfill(msk,'holes');
 msk  = bwareaopen(msk,10000);
+if ~isempty(arg.shrinkmsk)
+    msk = imerode(msk,arg.shrinkmsk); 
+end
 
 bnd=bwboundaries(msk);
 bnd=bnd{1}(:,[2 1]);

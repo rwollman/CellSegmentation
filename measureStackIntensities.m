@@ -31,7 +31,7 @@ end
 %% register
 if arg.register && isa(Lbl.Reg,'Registration') 
     measurementStack = Lbl.Reg.register(measurementStack,T);
-    fprintf('Finished registration')
+    fprintf('Finished registration\n')
 end
 
 %% subtrack bacground (for all stack at once...); 
@@ -50,18 +50,19 @@ if arg.background
             error('Mask call for background subtractin not supported!, check for typos...')
     end
     measurementStack = backgroundSubtraction(measurementStack,'msk',msk,'smoothstk',false,'smoothmethod',arg.background_smooth, 'percentile', arg.percentile);
-    fprintf('Finsihed subtracting background')
+    fprintf('Finsihed subtracting background\n')
 end
 
 %% do actual measurements
+cellids={}; 
 if iscell(arg.cellregiontouse)
     measurement = cell(size(arg.cellregiontouse));
     cellids = cell(size(arg.cellregiontouse));
     for i=1:numel(arg.cellregiontouse)
-        measurement{i} = meanIntensityPerLabel(Lbl,measurementStack,T,'func','mean','type',arg.cellregiontouse{i});
-        cellids{i} = Lbl.cellids;
+        measurement{i} = meanIntensityPerLabel(Lbl,measurementStack,T,'func',arg.func,'type',arg.cellregiontouse{i});
+%         cellids{i} = Lbl.cellids;
     end
 else
     measurement = meanIntensityPerLabel(Lbl,measurementStack,T,'func',arg.func,'type',arg.cellregiontouse);
-    cellids = Lbl.cellids;
+%     cellids = Lbl.cellids;
 end
