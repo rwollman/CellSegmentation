@@ -29,10 +29,10 @@ for arrayInd = 1:length(posArray);
     %}
 
     %%
-    [Lbl,NucLabels,T,msk] = segmentNucleiOnly(md,pos,'project',true);
+    [Lbl,NucLabels,T,msk] = segmentNucleiOnly(md,pos);
 
     %%
-    [Ca,T,CaStk] = measureStackIntensities(md,pos,Lbl,'channel','Yellow','background',false,'register',false); 
+    [Ca,T,CaStk] = measureStackIntensities(md,pos,Lbl,'channel','Yellow','background',false,'register',true); 
     %% get the Time vector
     Tca = md.getSpecificMetadata('TimestampFrame','Channel','Yellow','Position',pos);
     Tca = cat(1,Tca{:});
