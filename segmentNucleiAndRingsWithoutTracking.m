@@ -15,7 +15,9 @@ arg.shrinkmsk = strel('disk',50);
 arg.ring_spacer = strel('disk',1); 
 arg.ring_width = strel('disk',4);
 arg.sz =  [2048  2064]; 
+arg.track = 'none'; 
 arg.verbose = false; 
+
 arg = parseVarargin(varargin,arg); 
     
 t0=now; 
@@ -97,7 +99,7 @@ t0=now;
 arg.verbose && fprintf('Finished nuclei segmentation %s\n',datestr(now-t00,13)); 
 
 %% create a whole cell binary mask
-BW = false(size(nuc)); 
+BW = true(size(nuc)); 
 for j=1:numel(arg.cyto_channels)
     MAPK = stkread(MD,'TimestampFrame',T,'Channel',arg.cyto_channels{j});
     if ~isempty(Reg)
@@ -109,6 +111,7 @@ for j=1:numel(arg.cyto_channels)
     BWtmp=false(size(nuc)); 
     parfor i=1:numel(T)
         %% segment cytoplasm
+        BW(:,:,i) = BW(:,:,i) & optThreshold(MAPK(:,:,i),'msk',msk,'method',arg.cyto_thresholdmethod,'transform',arg.cyto_transform);
         BWtmp(:,:,i) = optThreshold(MAPK(:,:,i),'msk',msk,'method',cyto_thresholdmethod,'transform',cyto_transform);
     end
     BW=BW | BWtmp; 
@@ -176,10 +179,10 @@ Lbl.posname = well;
 Lbl.Reg = Reg; 
 for i=1:numel(T)
     %% add to Lbl
-    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel','none');
-    addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel','none');
-    addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel','none');
-    addLbl(Lbl,RingLabels(:,:,i),'ring',T(i),'relabel','none');
+    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel',arg.track);
+    addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel',arg.track);
+    addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel',arg.track);
+    addLbl(Lbl,RingLabels(:,:,i),'ring',T(i),'relabel',arg.track);
 end
    
 arg.verbose && fprintf('Finished creating cell label %s\n',datestr(now-t00,13)); 
