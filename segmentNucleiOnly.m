@@ -104,8 +104,8 @@ parfor i=1:size(nuc,3)
     % remove cells too close to boundaries
     prps = regionprops(nuclbl,'Centroid');
     cntr = cat(1,prps.Centroid)';
-    DistFromEdge = min(distance(cntr,bnd'),[],2);
-    nucbw = ismember(nuclbl,find(DistFromEdge>arg.mindistancefromedge));
+%     DistFromEdge = min(distance(cntr,bnd'),[],2);
+%     nucbw = ismember(nuclbl,find(DistFromEdge>arg.mindistancefromedge));
     nucbw = bwareaopen(nucbw,arg.nuc_minarea);
     nuclbl = bwlabel(nucbw);
 
