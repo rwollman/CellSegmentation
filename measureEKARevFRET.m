@@ -15,6 +15,7 @@ arg.yfp2fretbleedthrough = 0.0284;
 arg.backgroundfilter = sum(fspecial('gauss',5,3));
 
 arg.positiontype = 'Position'; 
+arg.rescalemovie = 0.333;
 
 arg.crop = [680 680 680 680]; 
 arg.positiontype = 'Position';
@@ -145,13 +146,13 @@ Erk = meanIntensityPerLabel(Lbl,ratio,T,'func','median','type','cyto');
 
 %% make FretStak to allow for nice visualization
 if nargout ==3
-    f=imresize(ratio(:,:,1),0.333);
+    f=imresize(ratio(:,:,1),arg.rescalemovie);
     FretStk = zeros(size(f,1),size(f,2),size(ratio,3),'single');
     Imin = prctile(ratio(unidrnd(numel(ratio),10000,1)),5); 
     for i=1:size(ratio,3)
         lbl =getLbls(Lbl,'cyto',T(i));
-        lbl = imresize(lbl,0.333);
-        f=imresize(ratio(:,:,i),0.333);
+        lbl = imresize(lbl,arg.rescalemovie);
+        f=imresize(ratio(:,:,i),arg.rescalemovie);
         f(~lbl)=Imin;
         FretStk(:,:,i)=f;
     end
