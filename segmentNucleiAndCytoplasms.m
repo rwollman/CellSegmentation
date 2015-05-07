@@ -50,7 +50,7 @@ arg.register = [];
 
 arg.shrinkmsk = strel('disk',50);
 
-arg.track_method='nearest'; 
+arg.track_method='none'; %nearest %none
 
 arg = parseVarargin(varargin,arg);
 
