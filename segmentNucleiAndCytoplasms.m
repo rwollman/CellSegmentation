@@ -48,6 +48,8 @@ arg.positiontype = 'Position';
 arg.reg_channel = 'CyanToYellow'; 
 arg.register = []; 
 
+arg.shrinkmsk = strel('disk',50);
+
 arg.track_method='nearest'; 
 
 
@@ -77,16 +79,16 @@ end
 %% call the nuclei segmentation function with updated arg struct
 [~,NucLabels,T,msk] = segmentNucleiOnly(MD,well,arg); 
 % n = numel(MD.getSpecificMetadata('TimestampImage','Channel',arg.cyto_channel,arg.positiontype,well));
-n = numel(T); 
-CellLabels = cell(n,1);
-CytoLabels = cell(n,1);
+
 
 
 %% read cytoplasm channel and register it with Reg
-% [yfp,indx] = stkread(MD,'Position',well,'Channel','Yellow');
+[yfp,indx] = stkread(MD,'Channel',arg.cyto_channel,arg.positiontype,well);
+
 
 % get Tyfp for the cytoplasm based on indexes where Tyfp is based on Frame
 Tyfp = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
+Tyfp = cat(1,Tyfp{:}); 
 
 if isa(Reg,'Registration') % if Reg returns not false its a 
     yfp = Reg.register(yfp,Tyfp); 
@@ -110,6 +112,14 @@ for i=1:numel(ixMissingNucs)
     NucLabelsAll{ixMissingNucs(i)} = NucLabels{mi}; 
 end
 NucLabels = NucLabelsAll; 
+
+n = numel(NucLabels); 
+CellLabels = cell(n,1);
+CytoLabels = cell(n,1);
+
+if numel(T)<numel(Tyfp) 
+    T=Tyfp;
+end
 
 %% segment cytoplasm
 for i=1:numel(NucLabels)
