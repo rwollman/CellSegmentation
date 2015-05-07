@@ -9,10 +9,11 @@ arg.cellregiontouse = 'nuc';
 arg.mskmethod = '5percentile';
 arg.background_smooth = 'spline';
 arg.func = 'mean';
+arg.samplingdensity = 15; 
+arg.group_registration_by_acq = false; 
 arg.percentile = 0; % Parameter passed to backgroundSubtraction
 
 arg = parseVarargin(varargin,arg); 
-
 
 if isempty(arg.channel)
     error('Channel is a requried argument!'); 
@@ -28,17 +29,18 @@ if iscell(T)
 end
 
 
-%% register
-if arg.register && isa(Lbl.Reg,'Registration') 
-    measurementStack = Lbl.Reg.register(measurementStack,T);
-    fprintf('Finished registration\n')
-end
+
 
 %% subtrack bacground (for all stack at once...); 
 if arg.background
     switch arg.mskmethod
         case 'none'
             msk = true(size(measurementStack(:,:,1))); 
+        case 'stack'
+            ix = randi(numel(measurementStack),10000,1); 
+            thrsh = prctile(measurementStack(ix),5); 
+            mskStk = stkfun(@(m) m>thrsh,measurementStack);
+            msk = mean(mskStk,3)==1; 
         case '5percentile'
             msk = nanmean(measurementStack,3);
             msk = msk>prctile(msk(:),5);
@@ -46,11 +48,36 @@ if arg.background
             msk = nanmean(measurementStack,3);
             msk = msk>prctile(msk(:),5);
             msk = imerode(msk,strel('disk',50)); 
+        case 'alpha-mean'
+            prj = nanmean(measurementStack,3);
+            p=prctile(prj(:),[5 95]);
+            msk = false(size(prj)); 
+            msk(prj>p(1) & prj<p(2))=true; 
+            
         otherwise
             error('Mask call for background subtractin not supported!, check for typos...')
     end
-    measurementStack = backgroundSubtraction(measurementStack,'msk',msk,'smoothstk',false,'smoothmethod',arg.background_smooth, 'percentile', arg.percentile);
+    
+    %% remove from the msk pixel that could belog to cells
+    possiblecellbw = mean(Lbl.getLbls('base',Lbl.T),3)>0;
+    msk(possiblecellbw)=false; 
+    
+    %% perform background subtraction
+    measurementStack = backgroundSubtraction(measurementStack,'msk',msk,'smoothstk',false,'smoothmethod',arg.background_smooth, ...
+                                                                         'percentile', arg.percentile,'samplingdensity',arg.samplingdensity);
     fprintf('Finsihed subtracting background\n')
+end
+
+%% register
+if arg.register && isa(Lbl.Reg,'Registration') 
+    if arg.group_registration_by_acq
+        acq = MD.getSpecificMetadata('acq','Position',well,'Channel',arg.channel);
+        [~,~,grouping] = unique(acq);
+        measurementStack = Lbl.Reg.register(measurementStack,T,'grouping',grouping);
+    else
+        measurementStack = Lbl.Reg.register(measurementStack,T);
+    end
+    fprintf('Finished registration\n')
 end
 
 %% do actual measurements

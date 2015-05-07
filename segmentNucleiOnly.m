@@ -20,10 +20,6 @@ arg = parseVarargin(varargin,arg);
     
 %% read the Hoescht stack
 nuc = stkread(MD,arg.positiontype,well,'Channel',arg.nuc_channel ,'timefunc',arg.timefunc);
-if arg.project
-    [~,~,nm]=size(nuc); 
-    nuc = repmat(mean(nuc,3),[1 1 nm]);
-end
 
 %% Create the CellLabel object
 Lbl = CellLabel;
@@ -45,6 +41,15 @@ elseif ~isempty(arg.register) && isa(arg.register,'Registration')
 else
     Reg = []; 
 end
+
+%% projection
+if ~isempty(arg.project) 
+    switch arg.project
+        case '
+    [~,~,nm]=size(nuc); 
+    nuc = repmat(mean(nuc,3),[1 1 nm]);
+end
+
 
 %% first subtrack background for entire stack
 % subtract bacgkround using a mask to avoid corner issues
@@ -71,7 +76,8 @@ parfor i=1:size(nuc,3)
     % then find the local maxima to create a seed per each nucleur. Then
     % use watershed to segment the nuclei based on these seeds.
     nucbw = optThreshold(nuc(:,:,i),'method','otsu','msk',logical(msk),'transform','log');
-
+    
+    
     % identify peaks in the nuc
 
     % erode to emphasize the peaks

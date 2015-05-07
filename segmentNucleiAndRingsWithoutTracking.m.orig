@@ -15,11 +15,9 @@ arg.shrinkmsk = strel('disk',50);
 arg.ring_spacer = strel('disk',1); 
 arg.ring_width = strel('disk',4);
 arg.sz =  [2048  2064]; 
-<<<<<<< local
 arg.track = 'none'; 
-=======
 arg.verbose = false; 
->>>>>>> other
+
 arg = parseVarargin(varargin,arg); 
     
 t0=now; 
@@ -74,7 +72,6 @@ end
 nuc = backgroundSubtraction(nuc,'msk',logical(msk),'smoothstk',false);
 
 
-
 NucLabels = zeros([arg.sz size(nuc,3)],'uint16');
 CellLabels = zeros([arg.sz size(nuc,3)],'uint16');
 CytoLabels = zeros([arg.sz size(nuc,3)],'uint16');
@@ -113,11 +110,8 @@ for j=1:numel(arg.cyto_channels)
     BWtmp=false(size(nuc)); 
     parfor i=1:numel(T)
         %% segment cytoplasm
-<<<<<<< local
         BW(:,:,i) = BW(:,:,i) & optThreshold(MAPK(:,:,i),'msk',msk,'method',arg.cyto_thresholdmethod,'transform',arg.cyto_transform);
-=======
         BWtmp(:,:,i) = optThreshold(MAPK(:,:,i),'msk',msk,'method',cyto_thresholdmethod,'transform',cyto_transform);
->>>>>>> other
     end
     BW=BW | BWtmp; 
 end
@@ -132,7 +126,7 @@ cyto_ringstrel=arg.cyto_ringstrel;
 ring_spacer = arg.ring_spacer; 
 ring_width=arg.ring_width; 
 
-for i=1:numel(T)
+parfor i=1:numel(T)
     
     %% limit cell signal to some positive distance from cyto
     nucmskdil =  imdilate(NucLabels(:,:,i)>0,cyto_ringstrel); 
@@ -182,17 +176,18 @@ Lbl.saveToFile=true;
 Lbl.pth=MD.pth; 
 Lbl.posname = well; 
 Lbl.Reg = Reg; 
+addLbl(Lbl,CellLabels,'base',T,'relabel','none');
 for i=1:numel(T)
     %% add to Lbl
 <<<<<<< local
-    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel',arg.track);
-    addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel',arg.track);
-    addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel',arg.track);
-=======
-    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel','none');
     addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel','none');
     addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel','none');
     addLbl(Lbl,RingLabels(:,:,i),'ring',T(i),'relabel','none');
+=======
+    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel',arg.track);
+    addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel',arg.track);
+    addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel',arg.track);
+    addLbl(Lbl,RingLabels(:,:,i),'ring',T(i),'relabel',arg.track);
 >>>>>>> other
 end
    

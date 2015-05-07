@@ -52,6 +52,7 @@ arg.shrinkmsk = strel('disk',50);
 
 arg.track_method='none'; %nearest %none
 
+
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object
