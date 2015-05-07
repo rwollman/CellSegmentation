@@ -50,6 +50,7 @@ arg.register = [];
 
 arg.track_method='nearest'; 
 
+
 arg = parseVarargin(varargin,arg);
 
 %% Create the CellLabel object

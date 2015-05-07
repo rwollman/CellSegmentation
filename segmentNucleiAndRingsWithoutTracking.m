@@ -70,7 +70,6 @@ end
 nuc = backgroundSubtraction(nuc,'msk',logical(msk),'smoothstk',false);
 
 
-
 NucLabels = zeros([arg.sz size(nuc,3)],'uint16');
 CellLabels = zeros([arg.sz size(nuc,3)],'uint16');
 CytoLabels = zeros([arg.sz size(nuc,3)],'uint16');
@@ -124,7 +123,7 @@ cyto_ringstrel=arg.cyto_ringstrel;
 ring_spacer = arg.ring_spacer; 
 ring_width=arg.ring_width; 
 
-for i=1:numel(T)
+parfor i=1:numel(T)
     
     %% limit cell signal to some positive distance from cyto
     nucmskdil =  imdilate(NucLabels(:,:,i)>0,cyto_ringstrel); 
@@ -174,9 +173,9 @@ Lbl.saveToFile=true;
 Lbl.pth=MD.pth; 
 Lbl.posname = well; 
 Lbl.Reg = Reg; 
+addLbl(Lbl,CellLabels,'base',T,'relabel','none');
 for i=1:numel(T)
     %% add to Lbl
-    addLbl(Lbl,CellLabels(:,:,i),'base',T(i),'relabel','none');
     addLbl(Lbl,CytoLabels(:,:,i),'cyto',T(i),'relabel','none');
     addLbl(Lbl,NucLabels(:,:,i),'nuc',T(i),'relabel','none');
     addLbl(Lbl,RingLabels(:,:,i),'ring',T(i),'relabel','none');
