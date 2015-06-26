@@ -19,7 +19,11 @@ arg.track = 'none';
 arg.verbose = false; 
 
 arg = parseVarargin(varargin,arg); 
-    
+
+if ~iscell(arg.cyto_channels)
+    arg.cyto_channels={arg.cyto_channels}; 
+end
+
 t0=now; 
 t00=now; 
 
@@ -44,10 +48,14 @@ end
 if islogical(arg.register) && arg.register
     
     %% find the frames where potential shifts occured (between acq)
-    tbl=MD.tabulate('acq','Position',well,'Channel',arg.nuc_channel,'timefunc',arg.timefunc); 
-    tbl=cat(1,tbl{:,2}); 
-    possibleShiftingFrames=cumsum(tbl(1:end-1))+1; 
-    [nuc,Tforms] = registerStack(nuc,'crop',[400 400 1200 1200],'method','xcorr','reference',1,'maxdisp',100,'onlyspecificframes',possibleShiftingFrames);
+    if numel(unique(MD,'acq'))==1
+        possibleShiftingFrames=[]; 
+    else
+        tbl=MD.tabulate('acq','Position',well,'Channel',arg.nuc_channel,'timefunc',arg.timefunc);
+        tbl=cat(1,tbl{:,2});
+        possibleShiftingFrames=cumsum(tbl(1:end-1))+1;
+    end
+    [nuc,Tforms] = registerStack(nuc,'maxdisp',100,'onlyspecificframes',possibleShiftingFrames);
     Reg = Registration(T,Tforms);
     arg.register = Reg; 
 elseif ~isempty(arg.register) && isa(arg.register,'Registration')
@@ -110,7 +118,9 @@ for j=1:numel(arg.cyto_channels)
     BWtmp=false(size(nuc)); 
     parfor i=1:numel(T)
         %% segment cytoplasm
-        BW(:,:,i) = BW(:,:,i) & optThreshold(MAPK(:,:,i),'msk',msk,'method',arg.cyto_thresholdmethod,'transform',arg.cyto_transform);
+        % next line does an AND and all cyto channels whereas the one
+        % afterwards does an OR. 
+%         BW(:,:,i) = BW(:,:,i) & optThreshold(MAPK(:,:,i),'msk',msk,'method',cyto_thresholdmethod,'transform',cyto_transform);
         BWtmp(:,:,i) = optThreshold(MAPK(:,:,i),'msk',msk,'method',cyto_thresholdmethod,'transform',cyto_transform);
     end
     BW=BW | BWtmp; 
