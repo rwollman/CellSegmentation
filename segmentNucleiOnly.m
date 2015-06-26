@@ -14,6 +14,7 @@ arg.positiontype = 'Position';
 arg.register = []; % optional registration object
 arg.timefunc = @(t) true(size(t));
 arg.project = false; 
+arg.track_method = 'none';
 
 
 arg = parseVarargin(varargin,arg); 
@@ -44,8 +45,6 @@ end
 
 %% projection
 if ~isempty(arg.project) 
-    switch arg.project
-        case '
     [~,~,nm]=size(nuc); 
     nuc = repmat(mean(nuc,3),[1 1 nm]);
 end
@@ -122,8 +121,8 @@ end
 
 %% add label to CellLabel object
 for i=1:numel(NucLabels)
-    addLbl(Lbl,NucLabels{i} ,'base',T(i),'relabel','nearest');
-    addLbl(Lbl,NucLabels{i} ,'nuc',T(i),'relabel','nearest');
+    addLbl(Lbl,NucLabels{i} ,'base',T(i),'relabel',arg.track_method);
+    addLbl(Lbl,NucLabels{i} ,'nuc',T(i),'relabel',arg.track_method);
 end
 if isa(arg.register,'Registration')
     Lbl.Reg = Reg;
