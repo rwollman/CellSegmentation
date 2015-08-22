@@ -16,9 +16,12 @@ arg.timefunc = @(t) true(size(t));
 arg.project = false; 
 arg.track_method = 'none';
 
-
 arg = parseVarargin(varargin,arg); 
-    
+
+if isempty(arg.project)
+    arg.project=false; 
+end
+
 %% read the Hoescht stack
 nuc = stkread(MD,arg.positiontype,well,'Channel',arg.nuc_channel ,'timefunc',arg.timefunc);
 
@@ -44,7 +47,7 @@ else
 end
 
 %% projection
-if ~isempty(arg.project) 
+if arg.project  
     [~,~,nm]=size(nuc); 
     nuc = repmat(mean(nuc,3),[1 1 nm]);
 end
@@ -114,10 +117,15 @@ parfor i=1:size(nuc,3)
     nucbw = ismember(nuclbl,find(DistFromEdge>arg.mindistancefromedge));
     nucbw = bwareaopen(nucbw,arg.nuc_minarea);
     nuclbl = bwlabel(nucbw);
-
+   
+    %% add labels to cell array
     NucLabels{i} = nuclbl; 
     
 end
+
+
+
+
 
 %% add label to CellLabel object
 for i=1:numel(NucLabels)

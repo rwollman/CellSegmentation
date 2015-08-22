@@ -15,10 +15,13 @@ arg.percentile = 0; % Parameter passed to backgroundSubtraction
 
 arg = parseVarargin(varargin,arg); 
 
+
+
 if isempty(arg.channel)
     error('Channel is a requried argument!'); 
 end
 
+assert(ismember(arg.channel,unique(MD,'Channel')),'The channel is not part of Metadata, please choose another channel to measure on'); 
 
 [measurementStack,indx] = stkread(MD,arg.positiontype,well,'Channel',arg.channel,'timefunc',arg.timefunc,'sortby','TimestampFrame');
 T = MD.getSpecificMetadataByIndex('TimestampFrame',indx); 
